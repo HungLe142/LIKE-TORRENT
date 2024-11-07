@@ -79,8 +79,8 @@ class Torrent__Statistic():
     def extract_block(self, index, begin, length):
         for piece_index, piece in self.downloaded:
             if(piece_index == index):
-                print(f"Block from index {index}, begin {begin}, length {length}")
-                print(piece[begin:begin + length])
+                #print(f"Block from index {index}, begin {begin}, length {length}")
+                #print(piece[begin:begin + length])
                 return piece[begin:begin + length]
 
 
@@ -114,9 +114,9 @@ class Torrent__Statistic():
                     data += block['block']
 
                 self.piece_buffer.remove(buff)
-                if(verify_piece(data, piece_index, self.meta_info.info_hash)):
+                if(verify_piece(data, piece_index, self.meta_info.pieces)):
                     self.downloaded.add((piece_index, data))
-                    self.bitfield_pieces.add((index, 1))
+                    self.bitfield_pieces.add((piece_index, 1))
                 return data
         
         return None
@@ -193,7 +193,7 @@ class Node():
             if info_hash != self.info_hash:
                 raise ValueError("Invalid Info hash.") 
 
-            print(f"Received handshake with info_hash: {info_hash.hex()} and peer_id: {peer_id.decode('latin-1')}") 
+            #print(f"Received handshake with info_hash: {info_hash.hex()} and peer_id: {peer_id.decode('latin-1')}") 
             # Send BitField message
             return info_hash, peer_id
 
