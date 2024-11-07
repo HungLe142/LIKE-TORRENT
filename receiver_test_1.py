@@ -6,8 +6,9 @@ metadata = readTorrentFile(path5)
 metaInfo = Metadata(*metadata)
 node = Node(metaInfo)
 
-
-
+# IP and Port from seeder config
+ip = '192.168.1.37' 
+port = 6881
 try:
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     client_socket.settimeout(5) # Set timeout to 5 seconds

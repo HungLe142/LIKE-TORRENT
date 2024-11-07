@@ -112,8 +112,10 @@ class Torrent__Statistic():
                 data = b''
                 for block in sorted_block:
                     data += block['block']
-                self.downloaded.add((piece_index, data))
+
                 self.piece_buffer.remove(buff)
+                if(verify_piece(data, piece_index, self.meta_info.info_hash)):
+                    self.downloaded.add((piece_index, data))
                 return data
         
         return None

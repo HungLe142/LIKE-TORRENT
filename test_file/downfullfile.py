@@ -106,11 +106,12 @@ def map_pieces_to_file(pieces, piece_length, file_path, piece_hashes):
         
     # Tiếp tục với việc ghi các mảnh vào tệp 
     with open(file_path, 'r+b') as f: 
-        for index, piece in enumerate(pieces): 
+        for index, piece in pieces: 
             if verify_piece(piece, index, piece_hashes): 
                 offset = index * piece_length 
                 f.seek(offset) 
                 f.write(piece)
+                # TO DO: Update downloaded, get a new piece
             else: 
                 print(f"The {index} fragment does not match the hash, it is ignored.")
     """
