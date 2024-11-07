@@ -55,7 +55,8 @@ def receive_full_message(sock, length):
             data += part 
         except socket.timeout: 
             print("Receive timeout") 
-            continue # Optionally, handle the timeout or retry 
+            #continue # Optionally, handle the timeout or retry
+            return False 
         except socket.error as e: 
             print(f"Socket error: {e}") 
             break 
@@ -294,6 +295,9 @@ class Node():
             # Message's form: <len=0009+X><id=7><index><begin><block>  -> '!IBII'
             # 13 byte (4 byte for len, 1 byte for id, 4 byte for index, 4 byte for begin) and block length
             piece_message = receive_full_message(client_socket, block_length + 13) 
+            if(piece_message is False):
+                print(f"Skip the {piece_index} piece, try again later.")
+                return False
             #print(f"Receive piece message: {piece_message}")
             handle_piece_message(piece_message, self.torrent_statistic)
         

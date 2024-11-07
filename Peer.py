@@ -27,14 +27,14 @@ def read_file_as_bytes(file_path):
 
 # Functions for Downloading
 def handle_incoming_mesage(message, client_socket, node, client_addr):
-    print("Message received: ", message, " from ", client_addr) # Debugging print
+    #print("Message received: ", message, " from ", client_addr) # Debugging print
     if len(message) >= 5:
         length_prefix, message_id = struct.unpack('!IB', message[:5])
         if message_id == 7: 
-            print("Message is Piece message: ", message)
-            #handle_piece_message(message[5:], node.torrent_statistic)
+            print("Message received is Piece message: ", message)
+            handle_piece_message(message[5:], node.torrent_statistic)
         if message_id == 6:
-            print("Message is Request message: ", message)
+            print("Message received is Request message: ", message)
             handle_request_mesage(message, client_socket, node)
     else: 
         print("Received message is too short: ", message)
@@ -81,7 +81,7 @@ def handle_request_mesage(request_message, client_socket, node):
     # For debuging
     unpacked_data = struct.unpack('!IBII', piece_msg[:13])
     len, id, index, begin = unpacked_data
-    print(id, index, begin, length)
+    #print(id, index, begin, length)
 
     #print("Send piece message: ", piece_msg)
     client_socket.send(piece_msg)
