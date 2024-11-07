@@ -13,10 +13,10 @@ What is archived?
         Get piece message, handle it with a buffer for blocks
 
         When downloading all, gather the blocks to get a piece
+    
+    Successfully download the file in t2.torrent (case 1 seeder, 1 tracker, 1 file)
 
 TO DO:
-
-    Continue the case with single tracker, single file, single seeder; aim to download the file successfully
 
     Test the above case with more test cases
 

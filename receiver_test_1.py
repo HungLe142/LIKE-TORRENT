@@ -34,8 +34,7 @@ try:
         if bit == 0:
             print("Don't have piece: ", index)
             uncomplete = True
-    if uncomplete:
-        return False
-    map_pieces_to_file(node.torrent_statistic.downloaded, node.meta_info.piece_length,des_path)
+
+    map_pieces_to_file(node.torrent_statistic.downloaded, node.meta_info.piece_length,des_path,node.meta_info.pieces)
 except Exception as e: 
     print(f"Error connecting to {ip}:{ip} - {e}")

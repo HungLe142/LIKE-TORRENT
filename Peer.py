@@ -31,10 +31,10 @@ def handle_incoming_mesage(message, client_socket, node, client_addr):
     if len(message) >= 5:
         length_prefix, message_id = struct.unpack('!IB', message[:5])
         if message_id == 7: 
-            print("Message received is Piece message: ", message)
+            #print("Message received is Piece message: ", message)
             handle_piece_message(message[5:], node.torrent_statistic)
         if message_id == 6:
-            print("Message received is Request message: ", message)
+            #print("Message received is Request message: ", message)
             handle_request_mesage(message, client_socket, node)
     else: 
         print("Received message is too short: ", message)
