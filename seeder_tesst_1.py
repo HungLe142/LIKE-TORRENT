@@ -14,6 +14,7 @@ for piece_index, complete_piece in enumerate(pieces):
     if(piece_index != 5):
         node.torrent_statistic.downloaded.add((piece_index, complete_piece))
         node.torrent_statistic.num_pieces_downloaded += 1
+        node.torrent_statistic.bitfield_pieces.add((piece_index, 1))
 
 
 node.get_central_tracker()

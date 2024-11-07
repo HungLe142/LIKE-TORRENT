@@ -116,6 +116,7 @@ class Torrent__Statistic():
                 self.piece_buffer.remove(buff)
                 if(verify_piece(data, piece_index, self.meta_info.info_hash)):
                     self.downloaded.add((piece_index, data))
+                    self.bitfield_pieces.add((index, 1))
                 return data
         
         return None
@@ -203,12 +204,12 @@ class Node():
             client_socket.close()
             return
 
-    def create_bitfield_message(self): 
+    def create_bitfield_message(self):
         # form: bitfield: <len=0001+X><id=5><bitfield> 
         length_prefix = 1 + (self.meta_info.piece_count + 7) // 8 
         message_id = 5 
         bitfield = [0] * self.meta_info.piece_count 
-        for piece_index, _ in self.torrent_statistic.downloaded: 
+        for piece_index, _ in self.torrent_statistic.bitfield_pieces: 
             bitfield[piece_index] = 1 
             
         # Chuyển đổi danh sách bitfield thành chuỗi nhị phân 
@@ -338,23 +339,4 @@ class Node():
         
 
 if __name__ == "__main__":
-    file_path = "./input/t2.torrent"
-    src_parth = "./src/Charlie_Chaplin_Mabels_Strange_Predicament.avi"  
-    metadata = readTorrentFile(file_path)
-    metaInfo = Metadata(*metadata)
-    node = Node(metaInfo)
-
-
-    file_data = read_file_as_bytes(src_parth)
-    pieces = split_into_pieces(file_data, node.meta_info.piece_length)
-
-    for piece_index, complete_piece in enumerate(pieces):
-        node.torrent_statistic.downloaded.add((piece_index, complete_piece))
-        node.torrent_statistic.num_pieces_downloaded += 1
-    count = 0
-
-    node.display_info()
-    for index, data in node.torrent_statistic.downloaded:
-        if index == 0:
-            print(data[:node.meta_info.block_length])
-            break
+    pass
