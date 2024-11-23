@@ -20,6 +20,12 @@ class Metadata():
         # pieces divided into chunks of fixed block size
         self.block_length   = 16 * (2 ** 10)            # 16KB
 
+    def get_piece_length(self, piece_index):
+        # Trả về độ dài của piece cuối cùng nếu piece_index là piece cuối cùng, ngược lại trả về piece_length
+        if piece_index == self.piece_count - 1:
+            return self.file_size % self.piece_length or self.piece_length
+        return self.piece_length
+
     def display_info(self):
         print("---------------------------------------------------")
         print("Meta info:")
