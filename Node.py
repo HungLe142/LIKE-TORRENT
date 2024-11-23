@@ -152,7 +152,7 @@ class Node():
         self.client_port = 6881
         interface_name = 'Wi-Fi'
         # interface_name = 'enp0s3' # Use for virtual machine in VirtualBox
-        self.client_IP = get_ip_address()
+        self.client_IP = get_ip_address(interface_name)
 
         # Azureus-style encoding for peer id
         self.peer_id = ('-PC0001-' + ''.join([str(rd.randint(0, 9)) for i in range(12)])).encode()
