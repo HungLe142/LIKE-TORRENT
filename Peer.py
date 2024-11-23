@@ -3,6 +3,7 @@ import copy
 import hashlib
 import bencodepy 
 import struct
+import os
 
 import socket
 
