@@ -11,11 +11,10 @@ import struct
 
 VERSION = 'Window' # Change it to 'Kali' or 'Ubuntu' corresponding to ur OS
 
-if VERSION is 'Ubuntu' or 'Kali':
-    try: 
-        import netifaces as ni 
-    except ImportError: 
-        ni = None
+try: 
+    import netifaces as ni 
+except ImportError: 
+    ni = None
 
 # BitTorrent protocol constants 
 PSTR = "BitTorrent protocol" 
@@ -23,7 +22,7 @@ PSTRLEN = 68    # (49+len(pstr)) bytes long
 RESERVED = b'\x00' * 8 
 
 def get_ip_address(interface_name): 
-    if VERSION is 'Window':
+    if VERSION == 'Window':
         hostname = socket.gethostname() # Lấy tên máy chủ 
         ip_address = socket.gethostbyname(hostname) # Truy xuất địa chỉ IP 
 
@@ -165,9 +164,9 @@ class Node():
         self.meta_info = meta_info # Metadata class
         self.client_port = 6881
 
-        if VERSION is 'Window':
+        if VERSION == 'Window':
             interface_name = 'Wi-Fi'
-        elif VERSION is 'Ubuntu':
+        elif VERSION == 'Ubuntu':
             interface_name = 'enp0s3'
         else:
             interface_name = 'eth0'
