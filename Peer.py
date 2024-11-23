@@ -104,6 +104,9 @@ def verify_piece(piece, piece_index, piece_hashes): # Get a {piece, index} from 
 
 def map_pieces_to_file(pieces, piece_length, file_path, piece_hashes): 
     try: 
+        # Tạo thư mục nếu không tồn tại 
+        os.makedirs(os.path.dirname(file_path), exist_ok=True) 
+        
         # Cố gắng mở tệp trong chế độ đọc ghi 
         with open(file_path, 'r+b') as f: 
             pass 
@@ -118,8 +121,8 @@ def map_pieces_to_file(pieces, piece_length, file_path, piece_hashes):
             if verify_piece(piece, index, piece_hashes): 
                 offset = index * piece_length 
                 f.seek(offset) 
-                f.write(piece)
-                # TO DO: Update downloaded, get a new piece
+                f.write(piece) 
+                # TO DO: Update downloaded, get a new piece 
             else: 
                 print(f"The {index} piece does not match the hash, it is ignored.")
 
