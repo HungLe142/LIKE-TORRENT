@@ -8,13 +8,15 @@ import threading
 import time
 import random as rd
 import struct
+#import netifaces as ni
 
 # BitTorrent protocol constants 
 PSTR = "BitTorrent protocol" 
 PSTRLEN = 68    # (49+len(pstr)) bytes long
 RESERVED = b'\x00' * 8 
 
-def get_ip_address(): 
+def get_ip_address(interface_name): 
+    #ip_address = ni.ifaddresses(interface_name)[ni.AF_INET][0]['addr']
     hostname = socket.gethostname() # Lấy tên máy chủ 
     ip_address = socket.gethostbyname(hostname) # Truy xuất địa chỉ IP 
     return ip_address
@@ -148,6 +150,8 @@ class Node():
     def __init__(self, meta_info):
         self.meta_info = meta_info # Metadata class
         self.client_port = 6881
+        interface_name = 'Wi-Fi'
+        # interface_name = 'enp0s3' # Use for virtual machine in VirtualBox
         self.client_IP = get_ip_address()
 
         # Azureus-style encoding for peer id
