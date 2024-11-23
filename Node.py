@@ -8,7 +8,14 @@ import threading
 import time
 import random as rd
 import struct
-#import netifaces as ni
+
+VERSION = 'Window' # Change it to 'Kali' or 'Ubuntu' corresponding to ur OS
+
+if VERSION is 'Ubuntu' or 'Kali':
+    try: 
+        import netifaces as ni 
+    except ImportError: 
+        ni = None
 
 # BitTorrent protocol constants 
 PSTR = "BitTorrent protocol" 
@@ -16,9 +23,16 @@ PSTRLEN = 68    # (49+len(pstr)) bytes long
 RESERVED = b'\x00' * 8 
 
 def get_ip_address(interface_name): 
-    #ip_address = ni.ifaddresses(interface_name)[ni.AF_INET][0]['addr']
-    hostname = socket.gethostname() # Lấy tên máy chủ 
-    ip_address = socket.gethostbyname(hostname) # Truy xuất địa chỉ IP 
+    if VERSION is 'Window':
+        hostname = socket.gethostname() # Lấy tên máy chủ 
+        ip_address = socket.gethostbyname(hostname) # Truy xuất địa chỉ IP 
+
+    else:
+        if ni: 
+            ip_address = ni.ifaddresses(interface_name)[ni.AF_INET][0]['addr'] 
+        else: 
+            raise ImportError('Module netifaces has not been imported')
+    
     return ip_address
 
 def parse_peers(peers_binary):
@@ -150,7 +164,14 @@ class Node():
     def __init__(self, meta_info):
         self.meta_info = meta_info # Metadata class
         self.client_port = 6881
-        interface_name = 'Wi-Fi'
+
+        if VERSION is 'Window':
+            interface_name = 'Wi-Fi'
+        elif VERSION is 'Ubuntu':
+            interface_name = 'enp0s3'
+        else:
+            interface_name = 'eth0'
+
         # interface_name = 'enp0s3' # Use for virtual machine in VirtualBox
         self.client_IP = get_ip_address(interface_name)
 
