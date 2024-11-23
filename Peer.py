@@ -26,20 +26,26 @@ def read_file_as_bytes(file_path):
 
 
 # Functions for Downloading
-def handle_incoming_mesage(message, client_socket, node, client_addr):
-    #print("Message received: ", message, " from ", client_addr) # Debugging print
-    if len(message) >= 5:
-        length_prefix, message_id = struct.unpack('!IB', message[:5])
+def handle_incoming_message(message, client_socket, node, client_addr): 
+    #print("Message received: ", message, " from ", client_addr) # Debugging print 
+    
+    if not message: # Check if message is None or empty 
+        print("Received message is invalid: ", message) 
+        return False 
+    
+    if isinstance(message, bytes) and len(message) >= 5: 
+        length_prefix, message_id = struct.unpack('!IB', message[:5]) 
         if message_id == 7: 
-            #print("Message received is Piece message: ", message)
-            handle_piece_message(message[5:], node.torrent_statistic)
-        if message_id == 6:
-            #print("Message received is Request message: ", message)
-            handle_request_mesage(message, client_socket, node)
+            #print("Message received is Piece message: ", message) 
+            handle_piece_message(message[5:], node.torrent_statistic) 
+        elif message_id == 6: 
+            #print("Message received is Request message: ", message) 
+            handle_request_message(message, client_socket, node) 
     else: 
-        print("Received message is too short: ", message)
-        return False
-    return 1
+        print("Received message is too short or invalid type: ", message) 
+        return False 
+            
+    return True
 
 def handle_piece_message(piece_message, torrent_statistic): 
     # Message's form: <len=0009+X><id=7><index><begin><block>
@@ -70,7 +76,7 @@ def create_request_message(index, begin, block_length):
     message = struct.pack('!IBIII', length_prefix, message_id, index, begin, block_length)
     return message
 
-def handle_request_mesage(request_message, client_socket, node):
+def handle_request_message(request_message, client_socket, node):
     # Message's form: request: <len=0013><id=6><index><begin><length>
     unpacked_data = struct.unpack('!IBIII', request_message)
     _, id, index, begin, length = unpacked_data
