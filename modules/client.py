@@ -301,7 +301,7 @@ class Node():
             thread.join()
 
         # Turn 2: Get Pieces, focus on Missing Pieces:
-        while True:
+        while self.torrent_statistic.torrent_status == "Downloading":
             if self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count:
                 break
 

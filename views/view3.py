@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 import threading
+from tkinter import font
 import time
 
 
@@ -9,23 +10,42 @@ import time
 def show_view3(parent):
     parent.clear_content()
     parent.label = tk.Label(parent.content_frame, text="Downloading status", bg='lightgray')
-    parent.label.pack(fill=tk.X)  # only vertical
+    parent.label.pack(fill=tk.X)
 
-    # Create and store references to labels and tables
-    parent.labels = []
+    # Create and store references to containers, buttons, and tables
+    parent.containers = []  # For storing each file row container
+    parent.buttons = []  # For storing pause buttons
     parent.tables = []
 
     for torrent in parent.data.started_torrents:
-        label = ttk.Label(parent.content_frame, text=torrent.meta_info.file_name)
-        label.pack(padx=10, pady=4, anchor='w')
-        parent.labels.append(label)
+        # Create a container for the file name and the button
+        container = tk.Frame(parent.content_frame)
+        container.pack(fill=tk.X, padx=10, pady=4)
+        parent.containers.append(container)
 
+        # File name label 
+        label = ttk.Label(container, text=torrent.meta_info.file_name)
+        label.pack(side="left", anchor="w")
+
+        # Add pause button
+        pause_button = ttk.Button(container, text="||", command=lambda: pause_torrent(torrent))
+        #pause_button['font'] = font.Font(weight='bold')  
+        pause_button.pack(side="right", padx=10)  # Place it on the right
+        parent.buttons.append(pause_button)
+
+        # Create and add torrent table
         Torrent_table = create_torrent_table(parent.content_frame)
         add_torrent_table_row(Torrent_table, torrent)
         Torrent_table.pack(fill=tk.BOTH, expand=True)
         parent.tables.append(Torrent_table)
 
     start_refresh_thread(parent)
+
+
+def pause_torrent(parent):
+    print(f"Pausing torrent: {parent.meta_info.file_name}")
+    parent.torrent_statistic.torrent_status = "Paused"
+
 
 def keep_refresh_view_3(parent):
     if parent.view3_flag:
