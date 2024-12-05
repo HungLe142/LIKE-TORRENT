@@ -1,0 +1,8 @@
+- bencodepy
+- tkinter
+- copy
+- hashlib
+- struct
+- os
+- socket
+- requests

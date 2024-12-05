@@ -1,7 +1,7 @@
-from  TorrentFileHandler import *
-from Peer import *
-from  TorrentFileHandler import *
-from Contact_tracker import * 
+from  modules.file_processing import *
+from modules.peer import *
+from modules.tracker_contacting import * 
+from modules.peer import map_pieces_to_file
 
 import socket
 import threading
@@ -100,13 +100,13 @@ class Torrent__Statistic():
         self.num_pieces_left        = 0         # blocks/pieces left
 
         self.bitfield_pieces = set([])          # use for bitfield message
+        self.peer_data                   =  []  # use for manage peers : [{peer_ip, port, status, up, down}]
+        self.torrent_status = "Unstarted"
 
 
     def extract_block(self, index, begin, length):
         for piece_index, piece in self.downloaded:
             if(piece_index == index):
-                #print(f"Block from index {index}, begin {begin}, length {length}")
-                #print(piece[begin:begin + length])
                 return piece[begin:begin + length]
 
 
@@ -128,8 +128,6 @@ class Torrent__Statistic():
                     'block'         :   block
                 })
             self.piece_buffer.append(piece)
-
-        #print(self.piece_buffer)
         
     def assemble_piece(self, piece_index): 
         for buff in self.piece_buffer:
@@ -157,6 +155,23 @@ class Torrent__Statistic():
         print("num_pieces_uploaded", self.num_pieces_uploaded)
         print("num_pieces_left", self.num_pieces_left)
         print("---------------------------------------------------")
+
+def file_parse_controller(link): #DEPRECATED
+    thread = threading.Thread(target=parse_torrent_file_link, args=(link,)) 
+    thread.start()
+
+def parse_torrent_file_link(link):
+
+    metadata = readTorrentFile(link)
+    expected_length = 8
+    if metadata is None or len(metadata) != expected_length:
+        return None
+
+    metaInfo = Metadata(*metadata)
+    metaInfo.display_info()
+    node = Node(metaInfo)
+    node.get_central_tracker()
+    return node
 
 
 class Node():
@@ -260,66 +275,69 @@ class Node():
         #print("Bitfield message: ", decode_bitfield_message(message))
         return message
 
-    def download_in_turn1(self):
-        connected = set()
-        threads = [] 
-        for peer in self.peer_list: 
-            ip, port = peer
-            if (ip, port) in connected:
-                continue
-            connected.add((ip, port)) # need updating
+    def start_downloading(self, des_link):
 
-            # Gọi hàm qua thread, dữ liệu của class chưa được cập nhật
-            thread = threading.Thread(target=self.get_pieces_peer1, args=(ip, port)) 
-            #print(thread)a
+        self.meta_info.des_link = des_link
+        self.torrent_statistic.torrent_status = "Downloading"
+        thread = threading.Thread(target=self.download_controller,) 
+        thread.start()
+
+    def download_controller(self):
+        # Turn 1: Get Pieces, focus on BitField response:
+        try_connected = set()
+        threads = []
+        for peer in self.peer_list:
+
+            ip, port = peer
+            if (ip, port) in try_connected:
+                continue
+            try_connected.add((ip, port))
+
+            thread = threading.Thread(target=self.getFromBitField, args=(ip, port)) 
             threads.append(thread) 
             thread.start()
 
-       # Chờ cho tất cả các luồng hoàn thành
-        for thread in threads: 
-            thread.join()
-    
-    def download_from_turn2(self, miss_index):
-        self.get_central_tracker()
-
-        connected = set()
-        threads = [] 
-        for peer in self.peer_list: 
-
-            if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
-                return
-
-            ip, port = peer
-            if (ip, port) in connected:
-                continue
-            connected.add((ip, port)) # need updating
-
-            # Gọi hàm qua thread, dữ liệu của class chưa được cập nhật
-            thread = threading.Thread(target=self.get_pieces_peer2, args=(ip, port, miss_index)) 
-            #print(thread)a
-            threads.append(thread) 
-            thread.start()
-
-       # Chờ cho tất cả các luồng hoàn thành
         for thread in threads: 
             thread.join()
 
-    def download_strategy(self):
-        self.download_in_turn1()
-
+        # Turn 2: Get Pieces, focus on Missing Pieces:
         while True:
             if self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count:
                 break
 
             miss_index = find_missing_indices(self.meta_info.piece_count, self.torrent_statistic.bitfield_pieces)
-            self.download_from_turn2(miss_index)
+            self.get_central_tracker()
+            try_connected = set()
 
-    def start_downloading(self): # Need updating by downloading strategy...
-        #self.create_hand_shake_message()
-        if not self.peer_list:
-            return
-        self.download_strategy()
+            threads = [] 
+            for peer in self.peer_list: 
+
+                if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
+                    return
+
+                ip, port = peer
+                if (ip, port) in try_connected:
+                    continue
+                try_connected.add((ip, port)) # need updating
+
+                # Gọi hàm qua thread, dữ liệu của class chưa được cập nhật
+                thread = threading.Thread(target=self.getFromMissPieces, args=(ip, port, miss_index)) 
+                threads.append(thread) 
+                thread.start()
+            
+            for thread in threads: 
+                thread.join()
+
+        # Finish download
+        for peer in self.torrent_statistic.peer_data:
+            peer['down_status'] =  "disconnected"
+        
+        self.torrent_statistic.torrent_status = "Finished"
+        
         print("File downloaded with total of pieces:", self.torrent_statistic.num_pieces_downloaded)
+        print(f"Destination path: {self.meta_info.des_link}")
+        des_link = self.meta_info.des_link + self.meta_info.file_name
+        map_pieces_to_file(self.torrent_statistic.downloaded, self.meta_info.piece_length, des_link, self.meta_info.pieces)
 
     def handle_upload(self, client_socket, client_addr): 
         try:
@@ -387,17 +405,23 @@ class Node():
             handle_piece_message(piece_message, self.torrent_statistic) 
         
         self.torrent_statistic.assemble_piece(piece_index) 
-        ip_address, port = client_socket.getpeername() 
+        
+        ip_address, port = client_socket.getpeername()
+        for data in self.torrent_statistic.peer_data:
+            if data['ip'] == ip_address and data['port'] == port and data['down_status'] == "connected":
+                data['down'] += 1
+                break
+
+
         print(f"Get piece {piece_index} from {ip_address} : {port} total piece: {self.torrent_statistic.num_pieces_downloaded}")
 
-
-    def get_pieces_peer1(self, peer_ip, peer_port): # For downloading
+    def getFromBitField(self, peer_ip, peer_port): # For downloading
         try: 
             # Tạo socket và kết nối đến peer 
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
             client_socket.settimeout(5)
             client_socket.connect((peer_ip, peer_port)) 
-            
+                   
             # Gửi thông điệp handshake 
             #client_socket.sendall(self.handshake_msg) 
 
@@ -408,8 +432,19 @@ class Node():
             
             raw_bitfield_response = client_socket.recv(1024)
             bitfield_response = decode_bitfield_message(raw_bitfield_response)
-            
+            print(bitfield_response)
+            peer ={
+                'ip'                :   peer_ip,
+                'port'              :   peer_port,
+                'down_status'       :   "connected",
+                'up_status'         :   "unstarted",
+                'up'                :   0,
+                'down'              :   0
+            }
+            self.torrent_statistic.peer_data.append(peer)
+
             for piece_index, valid in enumerate(bitfield_response):
+
                 if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
                     return
                 if valid:
@@ -419,29 +454,67 @@ class Node():
                             continue
                         self.getPiece(client_socket, piece_index)
 
-            #client_socket.close() 
+            ip_address, port = client_socket.getpeername()
+            for data in self.torrent_statistic.peer_data:
+                if data['ip'] == ip_address and data['port'] == port and data['down_status'] == "connected":
+                    data['down_status'] = "disconnected"
+                    break
+            client_socket.close() 
+
+        except socket.timeout:
+            peer ={
+                'ip'                :   peer_ip,
+                'port'              :   peer_port,
+                'down_status'       :   "cannot connect (Time out)",
+                'up_status'         :   "unstarted",
+                'up'                :   0,
+                'down'              :   0
+            }
+            self.torrent_statistic.peer_data.append(peer)
+            print(f"Timeout connecting to {peer_ip}:{peer_port}")
+
         except Exception as e: 
+            peer ={
+                'ip'                :   peer_ip,
+                'port'              :   peer_port,
+                'down_status'       :   "cannot connect",
+                'up_status'         :   "unstarted",
+                'up'                :   0,
+                'down'              :   0
+            }
+            self.torrent_statistic.peer_data.append(peer)            
             print(f"Error connecting to {peer_ip}:{peer_port} - {e}")
 
-    def get_pieces_peer2(self, peer_ip, peer_port, miss_index):   
+    def getFromMissPieces(self, peer_ip, peer_port, miss_index):   
         try: 
             # Tạo socket và kết nối đến peer 
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
             client_socket.settimeout(5)
-            client_socket.connect((peer_ip, peer_port)) 
-            
-            # Gửi thông điệp handshake 
-            #client_socket.sendall(self.handshake_msg) 
+            client_socket.connect((peer_ip, peer_port))
 
-            # Nhận phản hồi từ peer 
-            # Nhận bitfield từ peer nếu có 
-            #len = 1 + (self.meta_info.piece_count + 7) // 8 
-            #raw_bitfield_response = receive_full_message(client_socket, len) 
-            
+            existed = False
+            for data in self.torrent_statistic.peer_data:
+                if data['ip'] == peer_ip and data['port'] == peer_port:
+                    existed = True
+                    data['down_status'] = "connected"
+                    break
+
+            if not existed:
+                peer ={
+                    'ip'                :   peer_ip,
+                    'port'              :   peer_port,
+                    'down_status'       :   "connected",
+                    'up_status'         :   "disconnected",
+                    'up'                :   0,
+                    'down'              :   0
+                }
+                self.torrent_statistic.peer_data.append(peer)
+
             raw_bitfield_response = client_socket.recv(1024)
             bitfield_response = decode_bitfield_message(raw_bitfield_response)
 
             for index in miss_index:
+
                 if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
                     return
                 with self.piece_lock:
@@ -450,8 +523,7 @@ class Node():
                         continue
                     self.getPiece(client_socket, index)
 
-            #client_socket.close() 
-        except Exception as e: 
+        except Exception as e:  
             print(f"Error connecting to {peer_ip}:{peer_port} - {e}")
 
 if __name__ == "__main__":

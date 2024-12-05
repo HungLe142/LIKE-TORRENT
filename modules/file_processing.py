@@ -7,7 +7,7 @@ import math
 
 class Metadata():
 
-    def __init__(self, trackers_url_list, file_name, file_size, piece_length, pieces, info_hash, files):
+    def __init__(self, trackers_url_list, file_name, file_size, piece_length, pieces, info_hash, files, link):
         self.trackers_url_list  = trackers_url_list     # list   : URL of trackers
         self.file_name      = file_name                 # string : file name
         self.file_size      = file_size                 # int    : file size in bytes
@@ -15,6 +15,8 @@ class Metadata():
         self.pieces         = pieces                    # bytes  : sha1 hash concatination of file
         self.info_hash      = info_hash                 # sha1 hash of the info metadata
         self.files          = files                     # list   : [length, path] (multifile torrent)
+        self.file_link      = link
+        self.des_link       = None
         self.piece_count    = math.ceil(file_size / piece_length) # number of pieces the client need to download
         self.num_block      = math.ceil(piece_length / (16 * (2 ** 10)) )
         # pieces divided into chunks of fixed block size
@@ -103,17 +105,21 @@ def readTorrentFile(path):
             info_hash = generate_info_hash(torrent_data)
             # files is list of tuple of size and path in case of multifile torrent
             files = None
-
-        return trackers_url_list, file_name, file_size, piece_length, pieces, info_hash, files
+        print(trackers_url_list)
+        print(file_name)
+        print(file_size)
+        print(piece_length)
+        print(pieces)
+        print(info_hash)
+        print(files)
+        print(path)
+        return trackers_url_list, file_name, file_size, piece_length, pieces, info_hash, files, path
     
     except Exception as err:
         print(err)
-        sys.exit()
+        return None
+        #sys.exit()
 
 
 if __name__ == "__main__":
-    metadata = readTorrentFile("./input/mix_http.torrent")
-
-    torrentInfo = Metadata(*metadata)
-    torrentInfo.display_info()
-
+    pass
