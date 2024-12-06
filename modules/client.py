@@ -1,6 +1,7 @@
 from  modules.file_processing import *
 from modules.peer import *
 from modules.tracker_contacting import * 
+#from tkinter import messagebox
 from modules.peer import map_pieces_to_file
 
 import socket
@@ -92,23 +93,21 @@ def find_missing_indices(count, data):
 class Torrent__Statistic():
     def __init__(self, meta_info):
         self.meta_info              = meta_info
-        self.uploaded               = set([])   # pieces uploaded
+        self.uploaded               = set([])   # pieces uploaded     -> NOT USED
         self.downloaded             = set([])   # pieces downloaded -> (piece_index, complete_piece)
         self.piece_buffer           = []   # each piece -> [{index, piece: [{begin, block}, {begin2, block 2}]}, {index2, piece: []}]
         self.num_pieces_downloaded  = 0         # blocks/pieces downloaded
-        self.num_pieces_uploaded    = 0         # blocks/pieces uplaoded
+        self.num_pieces_uploaded    = 0         # blocks/pieces uplaoded    
         self.num_pieces_left        = 0         # blocks/pieces left
-
         self.bitfield_pieces = set([])          # use for bitfield message
         self.peer_data                   =  []  # use for manage peers : [{peer_ip, port, status, up, down}]
         self.torrent_status = "Unstarted"
-
+        self.torrent_status_up = "Unstarted"
 
     def extract_block(self, index, begin, length):
         for piece_index, piece in self.downloaded:
             if(piece_index == index):
                 return piece[begin:begin + length]
-
 
     def add_block(self, piece_index, begin, block, block_length): # Receive piece message -> buffer the piece until get enough block -> create piece.
         existed_buffer = False
@@ -146,7 +145,6 @@ class Torrent__Statistic():
         
         return None
 
-
     def display_info(self):
         print("Torrent Statistic:")
         print("Uploaded: ", self.uploaded)
@@ -168,7 +166,7 @@ def parse_torrent_file_link(link):
         return None
 
     metaInfo = Metadata(*metadata)
-    metaInfo.display_info()
+    #metaInfo.display_info()
     node = Node(metaInfo)
     node.get_central_tracker()
     return node
@@ -201,6 +199,7 @@ class Node():
 
         # Khóa để đồng bộ hóa
         self.piece_lock = threading.Lock()
+        self.status_lock = threading.Lock()
 
     def get_central_tracker(self):
 
@@ -211,7 +210,6 @@ class Node():
                 rawresponse = get_HTTP_response(tracker_url, self, "started")
                 if(rawresponse):
                     peer_list, complete, tracker_id = parse_http_tracker_response(rawresponse)
-                    #print("#1 Active tracker response: ", rawresponse)
                     if(peer_list):
                         self.choosen_tracker = tracker_url
                         self.central_tracker_first_response = rawresponse
@@ -357,7 +355,7 @@ class Node():
                 #message = client_socket.recv(17)
                 message = receive_full_message(client_socket, 17)
                 if(handle_incoming_message(message, client_socket, self, client_addr) is False):
-                    #client_socket.close() 
+                    #client_socket.close()
                     print(f"Lost connection to peer {client_addr} due to short message, error,...")
                     break
                 
@@ -365,21 +363,62 @@ class Node():
             client_socket.close()
 
     def start_uploading(self):
-        #thread = []
-        seed_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print(f"Listening for handshake requests on port {self.client_port}...") 
-        seed_socket.bind((self.client_IP, self.client_port))
-        seed_socket.listen(5)
+        with self.status_lock:
+            self.torrent_statistic.torrent_status_up =  'Running'
+            seed_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print(f"Listening for handshake requests on port {self.client_port}...") 
+            seed_socket.bind((self.client_IP, self.client_port))
+            seed_socket.listen(5)
 
-        while True:
-            client_socket, addr = seed_socket.accept()
-            # Resending message to tracker for keep aliving
-            get_HTTP_response(self.choosen_tracker, self, "started")
-            print(f"Accepted connection from {addr}") 
+            while True:
+                client_socket, addr = seed_socket.accept()
+                # Resending message to tracker for keep aliving
+                get_HTTP_response(self.choosen_tracker, self, "started")
+                print(f"Accepted connection from {addr}") 
 
-            # Tạo một luồng mới để xử lý kết nối với client 
-            thread = threading.Thread(target=self.handle_upload, args=(client_socket,addr))
-            thread.start()
+                # Tạo một luồng mới để xử lý kết nối với client 
+                thread = threading.Thread(target=self.handle_upload, args=(client_socket,addr))
+                thread.start()
+
+        def update_uploading_status(block):
+            with self.status_lock:
+                if self.torrent_statistic.torrent_status_up != 'Running':
+                    return
+                piece_length = self.meta_info.piece_length
+                self.torrent_statistic.num_pieces_uploaded += len(block) / piece_length
+                
+
+    def parse_script_file(self, link, root):
+        # script is a txt file
+        # format: each line: <index> <piece_data>
+        # index is the index of piece
+        
+        piece_hashes = self.meta_info.pieces
+        with open(link, 'r') as file:
+            for line in file:
+                parts = line.strip().split()
+                piece_index = int(parts[0])
+                complete_piece = parts[1].encode()
+
+                with self.piece_lock:
+                    
+                    if verify_piece(complete_piece, piece_index, piece_hashes) is False:
+                            root.root.after(0, lambda: messagebox.showwarning("Warning", "Your src file has some incorrect pieces, we discard them, the process is continued.")) 
+                            break
+                    
+                    piece = (piece_index, complete_piece)
+                    if piece in self.torrent_statistic.bitfield_pieces:
+                        continue
+                    else:
+                        self.torrent_statistic.downloaded.add(piece)
+                        self.torrent_statistic.num_pieces_downloaded += 1
+                        self.torrent_statistic.bitfield_pieces.add((piece_index, 1))
+
+        self.start_uploading()               
+
+    def upload_controller(self, link, root):
+        thread = threading.Thread(target=self.parse_script_file, args=(link,root)) 
+        thread.start()
 
     def getPiece(self, client_socket, piece_index): 
         if piece_index == self.meta_info.piece_count - 1: # Last piece case 
@@ -432,7 +471,6 @@ class Node():
             
             raw_bitfield_response = client_socket.recv(1024)
             bitfield_response = decode_bitfield_message(raw_bitfield_response)
-            print(bitfield_response)
             peer ={
                 'ip'                :   peer_ip,
                 'port'              :   peer_port,
