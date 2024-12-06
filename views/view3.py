@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 import threading
+from tkinter import font
 import time
 
 
@@ -9,23 +10,55 @@ import time
 def show_view3(parent):
     parent.clear_content()
     parent.label = tk.Label(parent.content_frame, text="Downloading status", bg='lightgray')
-    parent.label.pack(fill=tk.X)  # only vertical
+    parent.label.pack(fill=tk.X)
 
-    # Create and store references to labels and tables
-    parent.labels = []
+    # Create and store references to containers, buttons, and tables
+    parent.containers = []  # For storing each file row container
+    parent.buttons = []  # For storing start/stop button
     parent.tables = []
+    parent.status="Stop"
 
     for torrent in parent.data.started_torrents:
-        label = ttk.Label(parent.content_frame, text=torrent.meta_info.file_name)
-        label.pack(padx=10, pady=4, anchor='w')
-        parent.labels.append(label)
+        # Create a container for the file name and the button
+        container = tk.Frame(parent.content_frame)
+        container.pack(fill=tk.X, padx=10, pady=4)
+        parent.containers.append(container)
 
+        # File name label 
+        label = ttk.Label(container, text=torrent.meta_info.file_name)
+        label.pack(side="left", anchor="w")
+
+        # Add start/stop button
+        action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,action_button))
+        #pause_button['font'] = font.Font(weight='bold')  
+        action_button.pack(side="right", padx=10)  # Place it on the right
+        parent.buttons.append(action_button)
+
+        # Create and add torrent table
         Torrent_table = create_torrent_table(parent.content_frame)
         add_torrent_table_row(Torrent_table, torrent)
         Torrent_table.pack(fill=tk.BOTH, expand=True)
         parent.tables.append(Torrent_table)
 
     start_refresh_thread(parent)
+
+def actionButton_handle(torrent, button):
+    if button['text'] == "Stop":
+        stop_download_torrent(torrent)
+        button['text'] = "Start"
+    else:
+        start_download_torrent(torrent)
+        button['text'] = "Stop"
+
+def stop_download_torrent(parent):
+    print(f"Stopping download torrent: {parent.meta_info.file_name}")
+    parent.torrent_statistic.torrent_status = "Stopped"
+    parent.status = "Start"
+
+def start_download_torrent(parent):
+    print(f"Starting download torrent: {parent.meta_info.file_name}")
+    parent.torrent_statistic.torrent_status = "Starting"
+    parent.status = "Stop"
 
 def keep_refresh_view_3(parent):
     if parent.view3_flag:
