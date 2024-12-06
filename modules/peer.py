@@ -25,9 +25,8 @@ def read_file_as_bytes(file_path):
 
 
 
-# Functions for Downloading
+
 def handle_incoming_message(message, client_socket, node, client_addr): 
-    #print("Message received: ", message, " from ", client_addr) # Debugging print 
     
     if not message: # Check if message is None or empty 
         print("Received message is invalid: ", message) 
@@ -71,12 +70,17 @@ def handle_request_message(request_message, client_socket, node):
     piece_msg = create_piece_message(index, begin, block)
 
     # For debuging
-    unpacked_data = struct.unpack('!IBII', piece_msg[:13])
-    len, id, index, begin = unpacked_data
+    #unpacked_data = struct.unpack('!IBII', piece_msg[:13])
+    #len, id, index, begin = unpacked_data
     #print(id, index, begin, length)
 
     #print("Send piece message: ", piece_msg)
-    client_socket.send(piece_msg)
+    try:
+        client_socket.send(piece_msg)
+        node.update_uploading_status(index, begin, block)
+
+    except Exception as e:
+        print(f"Failed to send piece message: {e}")
 
 
 
@@ -114,9 +118,6 @@ def map_pieces_to_file(pieces, piece_length, file_path, piece_hashes):
             else:
                 print(f"The {index} piece does not match the hash, it is ignored.")
 
-def verify_piece(piece, index, piece_hashes):
-    # Dummy verify function
-    return True
 
 def read_file_as_bytes(file_path):
     with open(file_path, 'rb') as file: 

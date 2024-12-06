@@ -1,0 +1,8 @@
+1. go to https://drive.google.com/drive/folders/11t-nP5xE96pbSiuJNLQ8oJBPtte4D73J?usp=sharing for downloading scripts' data
+2. place script file in the same folder with this note.txt file
+3. These script files can be used for uploading
+
+- script1_data includes even number pieces
+- script2_data include odd number pieces
+- script3_data include pieces where 600 <= piece's index <= 1300
+- script4_data include pieces where 1 <= piece's index <= 500

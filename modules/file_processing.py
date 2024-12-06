@@ -105,14 +105,6 @@ def readTorrentFile(path):
             info_hash = generate_info_hash(torrent_data)
             # files is list of tuple of size and path in case of multifile torrent
             files = None
-        print(trackers_url_list)
-        print(file_name)
-        print(file_size)
-        print(piece_length)
-        print(pieces)
-        print(info_hash)
-        print(files)
-        print(path)
         return trackers_url_list, file_name, file_size, piece_length, pieces, info_hash, files, path
     
     except Exception as err:
