@@ -14,8 +14,9 @@ def show_view3(parent):
 
     # Create and store references to containers, buttons, and tables
     parent.containers = []  # For storing each file row container
-    parent.buttons = []  # For storing pause buttons
+    parent.buttons = []  # For storing start/stop button
     parent.tables = []
+    parent.status="Stop"
 
     for torrent in parent.data.started_torrents:
         # Create a container for the file name and the button
@@ -27,11 +28,11 @@ def show_view3(parent):
         label = ttk.Label(container, text=torrent.meta_info.file_name)
         label.pack(side="left", anchor="w")
 
-        # Add pause button
-        pause_button = ttk.Button(container, text="||", command=lambda: pause_torrent(torrent))
+        # Add start/stop button
+        action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,parent.status))
         #pause_button['font'] = font.Font(weight='bold')  
-        pause_button.pack(side="right", padx=10)  # Place it on the right
-        parent.buttons.append(pause_button)
+        action_button.pack(side="right", padx=10)  # Place it on the right
+        parent.buttons.append(action_button)
 
         # Create and add torrent table
         Torrent_table = create_torrent_table(parent.content_frame)
@@ -41,11 +42,21 @@ def show_view3(parent):
 
     start_refresh_thread(parent)
 
+def actionButton_handle(torrent, status):
+    if status == "Stop":
+        stop_download_torrent(torrent)
+    else:
+        start_download_torrent(torrent)
 
-def pause_torrent(parent):
+def stop_download_torrent(parent):
     print(f"Pausing torrent: {parent.meta_info.file_name}")
-    parent.torrent_statistic.torrent_status = "Paused"
+    parent.torrent_statistic.torrent_status = "Stopped"
+    parent.status = "Start"
 
+def start_download_torrent(parent):
+    print(f"Pausing torrent: {parent.meta_info.file_name}")
+    parent.torrent_statistic.torrent_status = "Starting"
+    parent.status = "Stop"
 
 def keep_refresh_view_3(parent):
     if parent.view3_flag:
