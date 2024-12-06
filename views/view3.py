@@ -29,7 +29,7 @@ def show_view3(parent):
         label.pack(side="left", anchor="w")
 
         # Add start/stop button
-        action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,parent.status))
+        action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,action_button))
         #pause_button['font'] = font.Font(weight='bold')  
         action_button.pack(side="right", padx=10)  # Place it on the right
         parent.buttons.append(action_button)
@@ -42,19 +42,21 @@ def show_view3(parent):
 
     start_refresh_thread(parent)
 
-def actionButton_handle(torrent, status):
-    if status == "Stop":
+def actionButton_handle(torrent, button):
+    if button['text'] == "Stop":
         stop_download_torrent(torrent)
+        button['text'] = "Start"
     else:
         start_download_torrent(torrent)
+        button['text'] = "Stop"
 
 def stop_download_torrent(parent):
-    print(f"Pausing torrent: {parent.meta_info.file_name}")
+    print(f"Stopping download torrent: {parent.meta_info.file_name}")
     parent.torrent_statistic.torrent_status = "Stopped"
     parent.status = "Start"
 
 def start_download_torrent(parent):
-    print(f"Pausing torrent: {parent.meta_info.file_name}")
+    print(f"Starting download torrent: {parent.meta_info.file_name}")
     parent.torrent_statistic.torrent_status = "Starting"
     parent.status = "Stop"
 
