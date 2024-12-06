@@ -14,7 +14,7 @@ class MainView:
         self.data = view_data()
         self.flag_lock = threading.Lock()
         self.torrent_list_lock = threading.Lock()
-        self.torrent_started_list_lock = threading.Lock()       
+        self.choosen_torrent_lock = threading.Lock()   # Use for protecting in view 4, protect in torrent verification  
         self.root = root
         self.root.title("LIKE TORRENT")
         self.root.geometry("900x600")
@@ -66,7 +66,6 @@ class MainView:
             self.view4_flag = False
             show_view3(self)
 
-
     def show_view4(self):
         with self.flag_lock:
             self.view1_flag = False
@@ -75,21 +74,25 @@ class MainView:
             self.view4_flag = True
             show_view4(self)
 
-
     def clear_content(self):
-        for widget in self.content_frame.winfo_children():
-            widget.destroy()
+        with self.choosen_torrent_lock:
+            self.data.choosen_torrent = None
+            self.data.choosen_torrent4 = None
+            for widget in self.content_frame.winfo_children():
+                widget.destroy()
 
     def start_download(self, des_link):
-        if not self.data.choosen_torrent: 
-            # Hiển thị hộp thoại pop-up nếu không có torrent được chọn 
-            messagebox.showwarning("Warning", "You need to choose a torrent to start downloading. If no torrent appears, please submit a .torrent file!") 
-            return
+        with self.choosen_torrent_lock:
+            if not self.data.choosen_torrent: 
+                # Hiển thị hộp thoại pop-up nếu không có torrent được chọn 
+                messagebox.showwarning("Warning", "You need to choose a torrent to start downloading. If no torrent appears, please submit a .torrent file!") 
+                return
 
         for torrent in self.data.torrent_list:
-            if torrent.meta_info.file_size == self.data.choosen_torrent[1] and  torrent.meta_info.file_name == self.data.choosen_torrent[0]:
-                self.data.started_torrents.add(torrent)
-                torrent.start_downloading(des_link)
+            with self.choosen_torrent_lock:
+                if torrent.meta_info.file_size == self.data.choosen_torrent[1] and  torrent.meta_info.file_name == self.data.choosen_torrent[0]:
+                    self.data.started_torrents.add(torrent)
+                    torrent.start_downloading(des_link)
 
 if __name__ == "__main__":
     root = tk.Tk()
