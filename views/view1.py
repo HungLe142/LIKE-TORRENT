@@ -108,15 +108,8 @@ def parse_file(link, root):
                 if torrent.meta_info.file_link == link or (torrent.choosen_tracker == node.choosen_tracker and torrent.meta_info.file_name == node.meta_info.file_name) :
                     root.root.after(0, lambda: messagebox.showwarning("Warning", f"Existed Torrent (Link: {link})")) 
                     return
-            print('KKKKKKKKKKKKKK')
             root.data.torrent_list.add(node)
-            for torrent in root.data.torrent_list:
-                print (torrent.meta_info.file_link)
-            #root.data.started_torrents.add(node)
-            """with root.flag_lock:
-                if root.view1_flag is True:
-                    show_view1(root)"""
-
+        
 def on_submit(entry, root,parent): 
     file_link = entry.get()
     
@@ -169,10 +162,11 @@ def is_float(value):
     except ValueError: return
 
 def on_item_select(event, tree, root): 
-    selected_item = tree.selection()[0] 
-    item_data = tree.item(selected_item)['values'] 
-    print(f'Dòng được chọn: {item_data}')
-    root.data.choosen_torrent = item_data
+    with root.choosen_torrent_lock:
+        selected_item = tree.selection()[0] 
+        item_data = tree.item(selected_item)['values'] 
+        print(f'Dòng được chọn: {item_data}')
+        root.data.choosen_torrent = item_data
 
 def add_torrent_table_row(table, torrent_list):
     if not torrent_list:
