@@ -1,7 +1,7 @@
 from  modules.file_processing import *
 from modules.peer import *
 from modules.tracker_contacting import * 
-#from tkinter import messagebox
+from tkinter import messagebox
 from modules.peer import map_pieces_to_file
 
 import socket
@@ -9,6 +9,7 @@ import threading
 import time
 import random as rd
 import struct
+import base64
 
 VERSION = 'Window' # Change it to 'Kali' or 'Ubuntu' corresponding to ur OS
 
@@ -408,8 +409,10 @@ class Node():
             for line in file:
                 parts = line.strip().split()
                 piece_index = int(parts[0])
-                complete_piece = parts[1].encode()
-
+                complete_piece_str = parts[1]
+                complete_piece = base64.b64decode(complete_piece_str.encode('ascii'))  # Chuyển đổi chuỗi base64 về dạng bytes
+                
+                #print(piece_index, complete_piece)
                 with self.piece_lock:
                     
                     if verify_piece(complete_piece, piece_index, piece_hashes) is False:
@@ -424,7 +427,8 @@ class Node():
                         self.torrent_statistic.num_pieces_downloaded += 1
                         self.torrent_statistic.bitfield_pieces.add((piece_index, 1))
 
-        self.start_uploading()               
+        self.start_uploading()
+
 
     def upload_controller(self, link, root):
         thread = threading.Thread(target=self.parse_script_file, args=(link,root)) 
