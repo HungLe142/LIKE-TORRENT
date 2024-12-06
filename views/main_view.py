@@ -38,11 +38,18 @@ class MainView:
         self.button_view3.pack(pady=5, fill=tk.X)
         self.button_view4 = tk.Button(self.sidebar_frame, text="Uploading status", command=lambda:self.show_view4())
         self.button_view4.pack(pady=5, fill=tk.X)
+        
+        self.view1_flag = False
+        self.view2_flag = False
+        self.view3_flag = False
+        self.view4_flag = False
 
         # Nội dung chính (mặc định hiển thị View 1)
         self.show_view1()
 
     def show_view1(self):
+        if self.view1_flag == True: # Avoid race condition
+            return
         with self.flag_lock:
             self.view1_flag = True
             self.view2_flag = False
@@ -51,6 +58,8 @@ class MainView:
             show_view1(self)
 
     def show_view2(self):
+        if self.view2_flag == True:
+            return
         with self.flag_lock:
             self.view1_flag = False
             self.view2_flag = True
@@ -59,6 +68,8 @@ class MainView:
             show_view2(self)
 
     def show_view3(self):
+        if self.view3_flag == True:
+            return
         with self.flag_lock:
             self.view1_flag = False
             self.view2_flag = False
@@ -67,6 +78,8 @@ class MainView:
             show_view3(self)
 
     def show_view4(self):
+        if self.view4_flag == True:
+            return
         with self.flag_lock:
             self.view1_flag = False
             self.view2_flag = False
@@ -86,6 +99,9 @@ class MainView:
             if not self.data.choosen_torrent: 
                 # Hiển thị hộp thoại pop-up nếu không có torrent được chọn 
                 messagebox.showwarning("Warning", "You need to choose a torrent to start downloading. If no torrent appears, please submit a .torrent file!") 
+                return
+            elif self.data.started_torrents:
+                messagebox.showwarning("Warning", "There ís an active torrent, please stop it first!") 
                 return
 
         for torrent in self.data.torrent_list:

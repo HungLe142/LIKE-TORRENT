@@ -16,6 +16,7 @@ def show_view1(parent):
 
     paned_window = tk.PanedWindow(parent.content_frame, orient=tk.HORIZONTAL) 
     paned_window.pack(fill=tk.BOTH, expand=True)
+    parent.des_entry = None #  For automatic fill the entry of destination link
    
     # Left frame
     left_frame = tk.Frame(paned_window)
@@ -48,16 +49,19 @@ def show_view1(parent):
     paned_window.paneconfigure(right_frame, stretch='never', minsize=100)
 
 def create_torrent_table(parent, root):
-    torrent_table = ttk.Treeview(parent, columns = ('File name', 'File size', 'Pieces', 'Status' ), show = 'headings', height=8)
+    torrent_table = ttk.Treeview(parent, columns = ('File name', 'File size', 'Pieces', 'Status' ,'Link'), show = 'headings', height=8)
     torrent_table.heading('File name', text = 'File name')
     torrent_table.heading('File size', text = 'File size', command=lambda: sort_table(torrent_table, 'File size', False))
     torrent_table.heading('Pieces', text = 'Pieces', command=lambda: sort_table(torrent_table, 'Pieces', False))
     torrent_table.heading('Status', text='Status')
+    torrent_table.heading('Link', text='Link')
+
 
     torrent_table.column('File name', width=82) 
     torrent_table.column('File size', width=82) 
     torrent_table.column('Pieces', width=82) 
     torrent_table.column('Status', width=82)
+    torrent_table.column('Link', width=0, stretch=tk.NO)
 
     torrent_table.bind('<<TreeviewSelect>>', lambda event: on_item_select(event, torrent_table, root))
 
@@ -72,7 +76,7 @@ def create_input_frame(parent, root):
     browse_button = ttk.Button(frame, text="Browse", command=lambda: browse_files(entry)) 
     browse_button.grid(row=0, column=1, padx=5, pady=5)
 
-    submit_button = ttk.Button(frame, text="Submit", command=lambda: on_submit(entry, root, parent)) 
+    submit_button = ttk.Button(frame, text="Submit", command=lambda: on_submit(entry, root)) 
     submit_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky='ew')
     
     frame.grid_columnconfigure(0, weight=1)
@@ -82,13 +86,13 @@ def create_input_frame(parent, root):
 def create_start_frame(parent, root):
     frame = ttk.Frame(parent)
     
-    entry_des = ttk.Entry(frame, width=50) 
-    entry_des.grid(row=0, column=0, padx=5, pady=5, sticky='ew')
+    root.des_entry = ttk.Entry(frame, width=50) 
+    root.des_entry.grid(row=0, column=0, padx=5, pady=5, sticky='ew')
 
-    browse_button = ttk.Button(frame, text="Browse", command=lambda: browse_directory(entry_des)) 
+    browse_button = ttk.Button(frame, text="Browse", command=lambda: browse_directory(root.des_entry)) 
     browse_button.grid(row=0, column=1, padx=5, pady=5)
 
-    submit_button = ttk.Button(frame, text="Start downloading", command=lambda: on_download(entry_des, root, parent)) 
+    submit_button = ttk.Button(frame, text="Start downloading", command=lambda: on_download(root.des_entry, root, parent)) 
     submit_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky='ew')
     
     frame.grid_columnconfigure(0, weight=1)
@@ -110,7 +114,7 @@ def parse_file(link, root):
                     return
             root.data.torrent_list.add(node)
         
-def on_submit(entry, root,parent): 
+def on_submit(entry, root): 
     file_link = entry.get()
     
     if file_link == '':
@@ -135,7 +139,7 @@ def on_download(entry, root,parent):
         return
 
     file_link += '/LTR_'
-    root.start_download(file_link)
+    root.start_download(file_link) # Root is main_view object!!
 
 
 def browse_files(entry): 
@@ -167,6 +171,9 @@ def on_item_select(event, tree, root):
         item_data = tree.item(selected_item)['values'] 
         print(f'Dòng được chọn: {item_data}')
         root.data.choosen_torrent = item_data
+        if item_data[4] != 'None':
+            root.des_entry.delete(0, tk.END) 
+            root.des_entry.insert(0, item_data[4])
 
 def add_torrent_table_row(table, torrent_list):
     if not torrent_list:
@@ -176,7 +183,8 @@ def add_torrent_table_row(table, torrent_list):
         data = (torrent.meta_info.file_name, 
                 torrent.meta_info.file_size,
                 torrent.meta_info.piece_count,
-                torrent.torrent_statistic.torrent_status
+                torrent.torrent_statistic.torrent_status,
+                torrent.meta_info.des_link
                 )
         
         iid = table.insert('', 'end', values=data)

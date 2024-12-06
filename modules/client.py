@@ -200,6 +200,7 @@ class Node():
         # Khóa để đồng bộ hóa
         self.piece_lock = threading.Lock()
         self.status_lock = threading.Lock()
+        self.peer_data_lock = threading.Lock()
 
     def get_central_tracker(self):
 
@@ -285,7 +286,6 @@ class Node():
         try_connected = set()
         threads = []
         for peer in self.peer_list:
-
             ip, port = peer
             if (ip, port) in try_connected:
                 continue
@@ -333,16 +333,19 @@ class Node():
             for thread in threads: 
                 thread.join()
 
-        # Finish download
+        # Finish download or Pausing
         for peer in self.torrent_statistic.peer_data:
             peer['down_status'] =  "disconnected"
         
-        self.torrent_statistic.torrent_status = "Finished"
-        
-        print("File downloaded with total of pieces:", self.torrent_statistic.num_pieces_downloaded)
-        print(f"Destination path: {self.meta_info.des_link}")
-        des_link = self.meta_info.des_link + self.meta_info.file_name
-        map_pieces_to_file(self.torrent_statistic.downloaded, self.meta_info.piece_length, des_link, self.meta_info.pieces)
+        with self.status_lock:
+            if self.torrent_statistic.torrent_status == "Stopped":
+                return
+            self.torrent_statistic.torrent_status = "Finished"
+            
+            print("File downloaded with total of pieces:", self.torrent_statistic.num_pieces_downloaded)
+            print(f"Destination path: {self.meta_info.des_link}")
+            des_link = self.meta_info.des_link + self.meta_info.file_name
+            map_pieces_to_file(self.torrent_statistic.downloaded, self.meta_info.piece_length, des_link, self.meta_info.pieces)
 
     def handle_upload(self, client_socket, client_addr): 
         try:
@@ -453,10 +456,12 @@ class Node():
         self.torrent_statistic.assemble_piece(piece_index) 
         
         ip_address, port = client_socket.getpeername()
+        
         for data in self.torrent_statistic.peer_data:
-            if data['ip'] == ip_address and data['port'] == port and data['down_status'] == "connected":
-                data['down'] += 1
-                break
+            with self.peer_data_lock:
+                if data['ip'] == ip_address and data['port'] == port and data['down_status'] == "connected":
+                    data['down'] += 1
+                    break
 
 
         print(f"Get piece {piece_index} from {ip_address} : {port} total piece: {self.torrent_statistic.num_pieces_downloaded}")
@@ -486,9 +491,15 @@ class Node():
                 'up'                :   0,
                 'down'              :   0
             }
-            self.torrent_statistic.peer_data.append(peer)
+            with self.peer_data_lock:
+                if not self.check_new_peer(peer_ipip, peer_port): 
+                    self.torrent_statistic.peer_data.append(peer)
 
             for piece_index, valid in enumerate(bitfield_response):
+                
+                # Condition for stopping current thread
+                if self.torrent_statistic.torrent_status == "Stopped":
+                    break
 
                 if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
                     return
@@ -501,13 +512,14 @@ class Node():
 
             ip_address, port = client_socket.getpeername()
             for data in self.torrent_statistic.peer_data:
-                if data['ip'] == ip_address and data['port'] == port and data['down_status'] == "connected":
-                    data['down_status'] = "disconnected"
-                    break
+                with self.peer_data_lock:
+                    if data['ip'] == ip_address and data['port'] == port and data['down_status'] == "connected":
+                        data['down_status'] = "disconnected"
+                        break
             client_socket.close() 
 
         except socket.timeout:
-            peer ={
+          """  peer ={
                 'ip'                :   peer_ip,
                 'port'              :   peer_port,
                 'down_status'       :   "cannot connect (Time out)",
@@ -515,11 +527,13 @@ class Node():
                 'up'                :   0,
                 'down'              :   0
             }
-            self.torrent_statistic.peer_data.append(peer)
-            print(f"Timeout connecting to {peer_ip}:{peer_port}")
+            with self.peer_data_lock:
+                if not self.check_new_peer(peer_ip, peer_port):
+                    self.torrent_statistic.peer_data.append(peer)
+                print(f"Timeout connecting to {peer_ip}:{peer_port}")"""
 
         except Exception as e: 
-            peer ={
+            """peer ={
                 'ip'                :   peer_ip,
                 'port'              :   peer_port,
                 'down_status'       :   "cannot connect",
@@ -527,8 +541,18 @@ class Node():
                 'up'                :   0,
                 'down'              :   0
             }
-            self.torrent_statistic.peer_data.append(peer)            
-            print(f"Error connecting to {peer_ip}:{peer_port} - {e}")
+            with self.peer_data_lock:
+                if not self.check_new_peer(peer_ip, peer_port):
+                    self.torrent_statistic.peer_data.append(peer)        
+                print(f"Error connecting to {peer_ip}:{peer_port} - {e}")"""
+
+    def check_new_peer(self, ip, port):
+        new_peer = True
+        for data in self.torrent_statistic.peer_data:
+            if data['ip'] == ip and data['port'] == port:
+                new_peer = False
+                break
+        return  new_peer
 
     def getFromMissPieces(self, peer_ip, peer_port, miss_index):   
         try: 
@@ -538,22 +562,24 @@ class Node():
             client_socket.connect((peer_ip, peer_port))
 
             existed = False
-            for data in self.torrent_statistic.peer_data:
-                if data['ip'] == peer_ip and data['port'] == peer_port:
-                    existed = True
-                    data['down_status'] = "connected"
-                    break
+            with self.piece_lock:
+                for data in self.torrent_statistic.peer_data:
+                    with self.peer_data_lock:
+                        if data['ip'] == peer_ip and data['port'] == peer_port:
+                            existed = True
+                            data['down_status'] = "connected"
+                            break
 
-            if not existed:
-                peer ={
-                    'ip'                :   peer_ip,
-                    'port'              :   peer_port,
-                    'down_status'       :   "connected",
-                    'up_status'         :   "disconnected",
-                    'up'                :   0,
-                    'down'              :   0
-                }
-                self.torrent_statistic.peer_data.append(peer)
+                if not existed:
+                    peer ={
+                        'ip'                :   peer_ip,
+                        'port'              :   peer_port,
+                        'down_status'       :   "connected",
+                        'up_status'         :   "disconnected",
+                        'up'                :   0,
+                        'down'              :   0
+                    }
+                    self.torrent_statistic.peer_data.append(peer)
 
             raw_bitfield_response = client_socket.recv(1024)
             bitfield_response = decode_bitfield_message(raw_bitfield_response)

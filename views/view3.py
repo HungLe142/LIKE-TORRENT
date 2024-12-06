@@ -29,7 +29,16 @@ def show_view3(parent):
         label.pack(side="left", anchor="w")
 
         # Add start/stop button
-        action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,action_button))
+        if torrent.torrent_statistic.torrent_status == "Finished":
+            pass
+
+        elif torrent.torrent_statistic.torrent_status == "Downloading":
+            parent.status = "Stop"
+        
+        else:
+            parent.status = "Start"
+        
+        action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,action_button, parent))
         #pause_button['font'] = font.Font(weight='bold')  
         action_button.pack(side="right", padx=10)  # Place it on the right
         parent.buttons.append(action_button)
@@ -42,47 +51,60 @@ def show_view3(parent):
 
     start_refresh_thread(parent)
 
-def actionButton_handle(torrent, button):
-    if button['text'] == "Stop":
-        stop_download_torrent(torrent)
+def actionButton_handle(torrent, button, root):
+    if torrent.torrent_statistic.torrent_status == "Finished": 
+        button.grid_remove()    
+    elif button['text'] == "Stop":
+        stop_download_torrent(torrent, root)
         button['text'] = "Start"
     else:
         start_download_torrent(torrent)
         button['text'] = "Stop"
 
-def stop_download_torrent(parent):
+def stop_download_torrent(parent, root):
     print(f"Stopping download torrent: {parent.meta_info.file_name}")
     parent.torrent_statistic.torrent_status = "Stopped"
-    parent.status = "Start"
+    root.data.started_torrents.clear()
+
 
 def start_download_torrent(parent):
     print(f"Starting download torrent: {parent.meta_info.file_name}")
-    parent.torrent_statistic.torrent_status = "Starting"
-    parent.status = "Stop"
+    link = parent.meta_info.des_link
+    parent.start_downloading(link)
 
-def keep_refresh_view_3(parent):
-    if parent.view3_flag:
-        # Refresh existing labels and tables
-        if parent.data.started_torrents == []:
-            return
-        for i, torrent in enumerate(parent.data.started_torrents):
-            parent.labels[i].config(text=torrent.meta_info.file_name)
-            # Clear and repopulate the table
-            clear_torrent_table(parent.tables[i])
-            add_torrent_table_row(parent.tables[i], torrent)
-        
-        # Schedule the next call to this function
-        parent.root.after(2000, lambda: keep_refresh_view_3(parent))
-
-def clear_torrent_table(table): 
-    for item in table.get_children(): 
-        table.delete(item)
 def start_refresh_thread(parent):
     # Start the refresh in a separate thread
     thread = threading.Thread(target=keep_refresh_view_3, args=(parent,))
     thread.start()
 
+def keep_refresh_view_3(parent): 
 
+    with parent.flag_lock:
+        if parent.view3_flag == False:
+            return
+        
+        all_torrent_stop = True
+        for torrent in parent.data.torrent_list:
+            if torrent.torrent_statistic.torrent_status == "Downloading":
+                all_torrent_stop = False
+                break
+        if all_torrent_stop:
+            return
+        
+        for table in parent.tables: 
+            table.destroy() 
+        parent.tables.clear()
+
+        for torrent in parent.data.started_torrents: 
+            if torrent.torrent_statistic.torrent_status == "Finished": 
+                continue 
+            
+            Torrent_table = create_torrent_table(parent.content_frame) 
+            add_torrent_table_row(Torrent_table, torrent) 
+            Torrent_table.pack(fill=tk.BOTH, expand=True) 
+            parent.tables.append(Torrent_table) 
+        
+        parent.root.after(2000, keep_refresh_view_3, parent)
 
 def create_torrent_table(parent):
     torrent_table = ttk.Treeview(parent, columns = ('Peer', 'Port', 'Status', 'Down' ), show = 'headings', height=8)
