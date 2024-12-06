@@ -114,6 +114,8 @@ def parse_file(link, root):
                     return
             root.data.torrent_list.add(node)
         
+        show_view1(root)  
+        
 def on_submit(entry, root): 
     file_link = entry.get()
     
@@ -128,9 +130,6 @@ def on_submit(entry, root):
     else:
         messagebox.showwarning("Warning", "Cannot parse the link, please enter a correct link to a .torrent file!") 
         return
-        
-
-
 
 def on_download(entry, root,parent):
     file_link = entry.get()
@@ -140,7 +139,6 @@ def on_download(entry, root,parent):
 
     file_link += '/LTR_'
     root.start_download(file_link) # Root is main_view object!!
-
 
 def browse_files(entry): 
     file_path = filedialog.askopenfilename() 
@@ -190,3 +188,4 @@ def add_torrent_table_row(table, torrent_list):
         iid = table.insert('', 'end', values=data)
 
     #return table
+
