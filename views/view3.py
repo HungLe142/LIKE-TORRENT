@@ -16,6 +16,7 @@ def show_view3(parent):
     parent.containers = []  # For storing each file row container
     parent.buttons = []  # For storing start/stop button
     parent.tables = []
+    parent.progress_bars = []
     parent.status="Stop"
 
     for torrent in parent.data.started_torrents:
@@ -29,7 +30,7 @@ def show_view3(parent):
         label.pack(side="left", anchor="w")
 
         # Add start/stop button
-        if torrent.torrent_statistic.torrent_status == "Finished":
+        if torrent.torrent_statistic.torrent_status == "Finished" or torrent.torrent_statistic.torrent_status != "Stopped":
             pass
 
         elif torrent.torrent_statistic.torrent_status == "Downloading":
@@ -37,6 +38,11 @@ def show_view3(parent):
         
         else:
             parent.status = "Start"
+
+        # Add progress bar 
+        progress = ttk.Progressbar(container, orient="horizontal", mode="determinate") 
+        progress.pack(fill=tk.X, padx=10, pady=4) 
+        parent.progress_bars.append(progress)
         
         action_button = ttk.Button(container, text=parent.status, command=lambda: actionButton_handle(torrent,action_button, parent))
         #pause_button['font'] = font.Font(weight='bold')  
@@ -50,6 +56,13 @@ def show_view3(parent):
         parent.tables.append(Torrent_table)
 
     start_refresh_thread(parent)
+
+def update_progress_bars(parent): 
+    for index, torrent in enumerate(parent.data.started_torrents): 
+        total_pieces = torrent.meta_info.file_size 
+        downloaded_pieces = torrent.torrent_statistic.num_pieces_downloaded 
+        progress_value = (downloaded_pieces / total_pieces) * 100 if total_pieces > 0 else 0 
+        parent.progress_bars[index].config(value=progress_value)
 
 def actionButton_handle(torrent, button, root):
     if torrent.torrent_statistic.torrent_status == "Finished": 
@@ -98,7 +111,7 @@ def keep_refresh_view_3(parent):
         for torrent in parent.data.started_torrents: 
             if torrent.torrent_statistic.torrent_status == "Finished": 
                 continue 
-            
+            update_progress_bars(parent)
             Torrent_table = create_torrent_table(parent.content_frame) 
             add_torrent_table_row(Torrent_table, torrent) 
             Torrent_table.pack(fill=tk.BOTH, expand=True) 
