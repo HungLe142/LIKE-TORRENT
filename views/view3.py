@@ -59,7 +59,7 @@ def show_view3(parent):
 
 def update_progress_bars(parent): 
     for index, torrent in enumerate(parent.data.started_torrents): 
-        total_pieces = torrent.meta_info.file_size 
+        total_pieces = torrent.meta_info.piece_count 
         downloaded_pieces = torrent.torrent_statistic.num_pieces_downloaded 
         progress_value = (downloaded_pieces / total_pieces) * 100 if total_pieces > 0 else 0 
         parent.progress_bars[index].config(value=progress_value)
@@ -79,11 +79,20 @@ def stop_download_torrent(parent, root):
     parent.torrent_statistic.torrent_status = "Stopped"
     root.data.started_torrents.clear()
 
+#modified-start
+def on_download(link, torrent):
+    file_link = link
+    print(file_link)
+    if file_link == '':
+        return
+    file_link += '/LTR_'
+
+    torrent.start_downloading(file_link) 
 
 def start_download_torrent(parent):
-    print(f"Starting download torrent: {parent.meta_info.file_name}")
+
     link = parent.meta_info.des_link
-    parent.start_downloading(link)
+    on_download(link, parent)
 
 def start_refresh_thread(parent):
     # Start the refresh in a separate thread
@@ -111,12 +120,11 @@ def keep_refresh_view_3(parent):
         for torrent in parent.data.started_torrents: 
             if torrent.torrent_statistic.torrent_status == "Finished": 
                 continue 
-            update_progress_bars(parent)
             Torrent_table = create_torrent_table(parent.content_frame) 
             add_torrent_table_row(Torrent_table, torrent) 
             Torrent_table.pack(fill=tk.BOTH, expand=True) 
             parent.tables.append(Torrent_table) 
-        
+        update_progress_bars(parent)        
         parent.root.after(2000, keep_refresh_view_3, parent)
 
 def create_torrent_table(parent):
