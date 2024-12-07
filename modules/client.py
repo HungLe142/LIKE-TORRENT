@@ -410,6 +410,7 @@ class Node():
                 return
             piece_length = self.meta_info.piece_length
             self.torrent_statistic.num_pieces_uploaded += len(block) / piece_length
+            print("Piece uploaded: ", self.torrent_statistic.num_pieces_uploaded)
             
 
     def parse_script_file(self, link, root):

@@ -80,7 +80,7 @@ def handle_request_message(request_message, client_socket, node):
     try:
         client_socket.send(piece_msg)
         if block:
-            node.update_uploading_status(index, begin, block)
+            node.update_uploading_status(index)
 
     except Exception as e:
         print(f"Failed to send piece message: {e}")
