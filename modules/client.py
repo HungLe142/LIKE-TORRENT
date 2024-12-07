@@ -373,8 +373,8 @@ class Node():
             }
             while True:
                 # Wait for peer's request message
-                #message = client_socket.recv(17)
-                message = receive_full_message(client_socket, 17)
+                message = client_socket.recv(17)
+                #message = receive_full_message(client_socket, 17)
                 if(handle_incoming_message(message, client_socket, self, client_addr) is False):
                     #client_socket.close()
                     print(f"Lost connection to peer {client_addr} due to short message, error,...")
@@ -621,8 +621,9 @@ class Node():
                         for piece_index, valid in enumerate(bitfield_response):
                             if piece_index == index:
                                 if valid == 1:
-                                    return
+                                    break
                                 else:
+                                    print(111111111111111)
                                     self.getPiece(client_socket, index)
                                     break
 
