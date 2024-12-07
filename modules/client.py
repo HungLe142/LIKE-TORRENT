@@ -292,6 +292,7 @@ class Node():
 
     def download_controller(self):
         # Turn 1: Get Pieces, focus on BitField response:
+        print("Downloading in turn 1!")
         try_connected = set()
         threads = []
         for peer in self.peer_list:
@@ -308,6 +309,7 @@ class Node():
             thread.join()
 
         # Turn 2: Get Pieces, focus on Missing Pieces:
+        print("Start downloading from turn 2!")
         while True:
             if self.torrent_statistic.torrent_status == "Stopped":
                 print("Stopping download section...")
@@ -434,7 +436,7 @@ class Node():
                     if piece in self.torrent_statistic.bitfield_pieces:
                         continue
                     else:
-                        print("Added piece:", piece_index)
+                        #print("Added piece:", piece_index)
                         #if piece_index <= 0:
                             #print("Piece ",piece_index, ": ", complete_piece)
                         self.torrent_statistic.downloaded.add(piece)
@@ -526,7 +528,8 @@ class Node():
 
                 if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
                     return
-                if valid == 1:
+                if valid:
+                    print("Turn 1 hit: piece: ", piece_index)
                     with self.piece_lock:
                         bf_dict = dict(self.torrent_statistic.bitfield_pieces)
                         if bf_dict.get(piece_index) == 1:
@@ -620,10 +623,11 @@ class Node():
                     else:
                         for piece_index, valid in enumerate(bitfield_response):
                             if piece_index == index:
-                                if valid == 1:
+                                if valid:
+                                    print("Turn 2 miss, downloaded piece: ", piece_index)
                                     break
                                 else:
-                                    print(111111111111111)
+                                    print("Turn 2 hit, start get piece: ", piece_index)
                                     self.getPiece(client_socket, index)
                                     break
 
