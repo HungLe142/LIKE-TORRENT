@@ -389,7 +389,8 @@ class Node():
         with self.status_lock:
             self.torrent_statistic.torrent_status_up =  'Running'
             seed_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            print(f"Listening for handshake requests on port {self.client_port}...") 
+            seed_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Allow reuse local address
+            print(f"Listening for handshake requests on {self.client_IP} : {self.client_port}...") 
             seed_socket.bind((self.client_IP, self.client_port))
             seed_socket.listen(5)
 
@@ -624,7 +625,7 @@ class Node():
                         for piece_index, valid in enumerate(bitfield_response):
                             if piece_index == index:
                                 if valid:
-                                    print("Turn 2 miss, downloaded piece: ", piece_index)
+                                    print("Turn 2 miss, the peer don't have the piece: ", piece_index)
                                     break
                                 else:
                                     print("Turn 2 hit, start get piece: ", piece_index)
