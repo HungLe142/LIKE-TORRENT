@@ -47,9 +47,9 @@ def start_refresh_thread(parent, left_frame):
     thread = threading.Thread(target=keep_refresh_view_4, args=(parent,left_frame))
     thread.start()
 
-def keep_refresh_view_4(parent, left_frame): 
+def keep_refresh_view_4(parent, left_frame):
     with parent.flag_lock:
-        if parent.view4_flag == False:
+        if not parent.view4_flag:
             return
         
         all_torrent_stop = True
@@ -57,23 +57,22 @@ def keep_refresh_view_4(parent, left_frame):
             if torrent.torrent_statistic.torrent_status_up == 'Running':
                 all_torrent_stop = False
                 break
+        
         if all_torrent_stop:
             return
         
-        # Xóa các bảng hiện tại
-        for table in parent.tables: 
-            table.destroy() 
-        parent.tables.clear()
-
-        # Tạo lại các bảng
-        # if torrent.torrent_statistic.torrent_status_up == 'Stopped':
-        #    continue 
-        Torrent_table = create_torrent_table(left_frame, parent)  # Sửa thứ tự tham số
-        add_torrent_table_row(Torrent_table, parent.data.torrent_list) 
-        Torrent_table.pack(fill=tk.BOTH, expand=True) 
-        parent.tables.append(Torrent_table) 
+        if parent.tables:
+            table = parent.tables[0]
+            # Xóa các dòng hiện tại trong bảng
+            for item in table.get_children():
+                table.delete(item)
+            
+            # Thêm lại các dòng mới với dữ liệu cập nhật
+            add_torrent_table_row(table, parent.data.torrent_list)
         
-        parent.root.after(2000, keep_refresh_view_4, parent, left_frame)  # Sửa thứ tự tham số
+        parent.root.after(5000, keep_refresh_view_4, parent, left_frame)
+
+
 
 
 
