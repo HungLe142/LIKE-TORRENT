@@ -526,7 +526,7 @@ class Node():
 
                 if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
                     return
-                if valid:
+                if valid == 1:
                     with self.piece_lock:
                         bf_dict = dict(self.torrent_statistic.bitfield_pieces)
                         if bf_dict.get(piece_index) == 1:
@@ -614,10 +614,17 @@ class Node():
                     return
                 with self.piece_lock:
                     bf_dict = dict(self.torrent_statistic.bitfield_pieces)
+
                     if bf_dict.get(index) == 1:
                         continue
                     else:
-                        self.getPiece(client_socket, index)
+                        for piece_index, valid in enumerate(bitfield_response):
+                            if piece_index == index:
+                                if valid == 1:
+                                    return
+                                else:
+                                    self.getPiece(client_socket, index)
+                                    break
 
         except Exception as e:  
             print(f"Error connecting to {peer_ip}:{peer_port} - {e}")
