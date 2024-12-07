@@ -101,7 +101,7 @@ def create_start_frame(parent, root):
 
 def parse_file(link, root):
         node = parse_torrent_file_link(link)
-
+        node.display_info()
         with root.torrent_list_lock:
             if node == None or node.meta_info == None:
                 # MainView.root

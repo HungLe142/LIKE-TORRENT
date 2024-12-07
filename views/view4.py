@@ -4,6 +4,8 @@ from tkinter import ttk, messagebox
 from views.view1 import browse_files
 from modules.file_processing import readTorrentFile
 import binascii
+import threading
+
 
 def show_view4(parent):
     
@@ -13,6 +15,7 @@ def show_view4(parent):
 
     paned_window = tk.PanedWindow(parent.content_frame, orient=tk.HORIZONTAL) 
     paned_window.pack(fill=tk.BOTH, expand=True)
+    parent.tables = []
 
     # Left frame
     left_frame = tk.Frame(paned_window)
@@ -21,6 +24,7 @@ def show_view4(parent):
     Torrent_table = create_torrent_table(left_frame, parent)
     add_torrent_table_row(Torrent_table, parent.data.torrent_list)
     Torrent_table.pack(fill=tk.BOTH, expand=True)
+    parent.tables.append(Torrent_table)
 
     # Right frame
     right_frame = tk.Frame(paned_window)
@@ -35,6 +39,39 @@ def show_view4(parent):
     label = ttk.Label(right_frame, text="Enter source file's link") 
     label.pack(padx=10, pady=4, anchor='center')
 
+    start_refresh_thread(parent)
+
+def start_refresh_thread(parent):
+    thread = threading.Thread(target=keep_refresh_view_4, args=(parent,))
+    thread.start()
+
+def keep_refresh_view_4(parent): 
+
+    with parent.flag_lock:
+        if parent.view4_flag == False:
+            return
+        
+        all_torrent_stop = True
+        for torrent in parent.data.torrent_list:
+            if torrent.torrent_statistic.torrent_status_up == "Stopped":
+                all_torrent_stop = False
+                break
+        if all_torrent_stop:
+            return
+        
+        for table in parent.tables: 
+            table.destroy() 
+        parent.tables.clear()
+
+        for torrent in parent.data.torrent_status_up: 
+            if torrent.torrent_statistic.torrent_status == "Stopped": 
+                continue 
+            Torrent_table = create_torrent_table(parent.content_frame) 
+            add_torrent_table_row(Torrent_table, torrent) 
+            Torrent_table.pack(fill=tk.BOTH, expand=True) 
+            parent.tables.append(Torrent_table) 
+        
+        parent.root.after(2000, keep_refresh_view_4, parent)
 
 def create_input_frame0(parent, root): # 
     frame = ttk.Frame(parent)
@@ -84,7 +121,7 @@ def create_torrent_table(parent, root):
     torrent_table = ttk.Treeview(parent, columns = ('File name', 'Tracker', 'Up', 'Status', 'Info_hash'), show = 'headings', height=8)
     torrent_table.heading('File name', text = 'File name')
     torrent_table.heading('Tracker', text = 'Tracker')
-    torrent_table.heading('Up', text = 'Up')
+    torrent_table.heading('Up', text = 'Up (piece)')
     torrent_table.heading('Status', text = 'Status')
     torrent_table.heading('Info_hash', text='Info_hash')
 

@@ -124,7 +124,7 @@ def create_torrent_table(parent):
     torrent_table.heading('Peer', text = 'Peer')
     torrent_table.heading('Port', text = 'Port')
     torrent_table.heading('Status', text = 'Status')
-    torrent_table.heading('Down', text = 'Down')
+    torrent_table.heading('Down', text = 'Down (piece)')
 
     torrent_table.column('Peer', width=200)
     torrent_table.column('Port', width=200) 

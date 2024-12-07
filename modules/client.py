@@ -107,8 +107,16 @@ class Torrent__Statistic():
 
     def extract_block(self, index, begin, length):
         for piece_index, piece in self.downloaded:
+            #print(piece_index)
+            #if(piece_index == 0):
+               # print("piece 0: ", piece_index)
             if(piece_index == index):
-                return piece[begin:begin + length]
+                print(f"Piece {piece_index} found with length {len(piece)}") 
+                print(f"Requested block from {begin} to {begin + length}") 
+                return piece[begin:begin + length] 
+                
+        print(f"Piece {index} not found")
+        return None
 
     def add_block(self, piece_index, begin, block, block_length): # Receive piece message -> buffer the piece until get enough block -> create piece.
         existed_buffer = False
@@ -352,6 +360,8 @@ class Node():
         try:
             if self.torrent_statistic.num_pieces_downloaded:
                 bitfield_msg =  self.create_bitfield_message()
+                #mess= decode_bitfield_message(bitfield_msg)
+                #print(mess)
                 # Send Bitfield
                 client_socket.sendall(bitfield_msg)
 
@@ -391,13 +401,13 @@ class Node():
                 thread = threading.Thread(target=self.handle_upload, args=(client_socket,addr))
                 thread.start()
 
-        def update_uploading_status(block):
-            with self.status_lock:
-                if self.torrent_statistic.torrent_status_up != 'Running':
-                    return
-                piece_length = self.meta_info.piece_length
-                self.torrent_statistic.num_pieces_uploaded += len(block) / piece_length
-                
+    def update_uploading_status(block):
+        with self.status_lock:
+            if self.torrent_statistic.torrent_status_up != 'Running':
+                return
+            piece_length = self.meta_info.piece_length
+            self.torrent_statistic.num_pieces_uploaded += len(block) / piece_length
+            
 
     def parse_script_file(self, link, root):
         # script is a txt file
@@ -412,20 +422,29 @@ class Node():
                 complete_piece_str = parts[1]
                 complete_piece = base64.b64decode(complete_piece_str.encode('ascii'))  # Chuyển đổi chuỗi base64 về dạng bytes
                 
-                #print(piece_index, complete_piece)
+                #print(piece_index)
                 with self.piece_lock:
                     
                     if verify_piece(complete_piece, piece_index, piece_hashes) is False:
-                            root.root.after(0, lambda: messagebox.showwarning("Warning", "Your src file has some incorrect pieces, we discard them, the process is continued.")) 
+                            root.root.after(0, lambda: messagebox.showwarning("Warning", "Your src file has some incorrect pieces, we discard them, the process is stopped.")) 
+                            self.torrent_statistic.torrent_status_up = "Stopped"
                             break
                     
                     piece = (piece_index, complete_piece)
                     if piece in self.torrent_statistic.bitfield_pieces:
                         continue
                     else:
+                        print("Added piece:", piece_index)
+                        #if piece_index <= 0:
+                            #print("Piece ",piece_index, ": ", complete_piece)
                         self.torrent_statistic.downloaded.add(piece)
                         self.torrent_statistic.num_pieces_downloaded += 1
                         self.torrent_statistic.bitfield_pieces.add((piece_index, 1))
+
+        #for index, bit in self.torrent_statistic.bitfield_pieces:
+            #print(index, bit)
+        #block = self.torrent_statistic.extract_block(0, 1, 16384)
+        #print("Extracted block after parse script: ", block)
 
         self.start_uploading()
 
@@ -512,7 +531,8 @@ class Node():
                         bf_dict = dict(self.torrent_statistic.bitfield_pieces)
                         if bf_dict.get(piece_index) == 1:
                             continue
-                        self.getPiece(client_socket, piece_index)
+                        else:
+                            self.getPiece(client_socket, piece_index)
 
             ip_address, port = client_socket.getpeername()
             for data in self.torrent_statistic.peer_data:
@@ -596,7 +616,8 @@ class Node():
                     bf_dict = dict(self.torrent_statistic.bitfield_pieces)
                     if bf_dict.get(index) == 1:
                         continue
-                    self.getPiece(client_socket, index)
+                    else:
+                        self.getPiece(client_socket, index)
 
         except Exception as e:  
             print(f"Error connecting to {peer_ip}:{peer_port} - {e}")
