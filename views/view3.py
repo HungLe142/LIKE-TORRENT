@@ -80,11 +80,20 @@ def stop_download_torrent(parent, root):
     parent.torrent_statistic.torrent_status = "Stopped"
     root.data.started_torrents.clear()
 
+#modified-start
+def on_download(link, torrent):
+    file_link = link
+    print(file_link)
+    if file_link == '':
+        return
+    file_link += '/LTR_'
+
+    torrent.start_downloading(file_link) 
 
 def start_download_torrent(parent):
-    print(f"Starting download torrent: {parent.meta_info.file_name}")
+
     link = parent.meta_info.des_link
-    parent.start_downloading(link)
+    on_download(link, parent)
 
 def start_refresh_thread(parent):
     # Start the refresh in a separate thread
