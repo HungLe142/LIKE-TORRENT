@@ -59,6 +59,7 @@ def show_view3(parent):
 
 def update_progress_bars(parent): 
     for index, torrent in enumerate(parent.data.started_torrents): 
+        print("Update progress bar...")
         total_pieces = torrent.meta_info.file_size 
         downloaded_pieces = torrent.torrent_statistic.num_pieces_downloaded 
         progress_value = (downloaded_pieces / total_pieces) * 100 if total_pieces > 0 else 0 
@@ -111,12 +112,12 @@ def keep_refresh_view_3(parent):
         for torrent in parent.data.started_torrents: 
             if torrent.torrent_statistic.torrent_status == "Finished": 
                 continue 
-            update_progress_bars(parent)
             Torrent_table = create_torrent_table(parent.content_frame) 
             add_torrent_table_row(Torrent_table, torrent) 
             Torrent_table.pack(fill=tk.BOTH, expand=True) 
             parent.tables.append(Torrent_table) 
-        
+
+        update_progress_bars(parent)        
         parent.root.after(2000, keep_refresh_view_3, parent)
 
 def create_torrent_table(parent):
