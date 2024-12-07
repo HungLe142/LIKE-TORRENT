@@ -103,7 +103,7 @@ class Torrent__Statistic():
         self.bitfield_pieces = set([])          # use for bitfield message
         self.peer_data                   =  []  # use for manage peers : [{peer_ip, port, status, up, down}]
         self.torrent_status = "Unstarted"
-        self.torrent_status_up = "Unstarted"
+        self.torrent_status_up = 'Unstarted'
 
     def extract_block(self, index, begin, length):
         for piece_index, piece in self.downloaded:
@@ -374,6 +374,8 @@ class Node():
                 'peer_interested'   :   0
             }
             while True:
+                if self.torrent_statistic.torrent_status_up ==  'Stopped':
+                    break
                 # Wait for peer's request message
                 message = client_socket.recv(17)
                 #message = receive_full_message(client_socket, 17)
@@ -395,6 +397,8 @@ class Node():
             seed_socket.listen(5)
 
             while True:
+                if self.torrent_statistic.torrent_status_up ==  'Stopped':
+                    break
                 client_socket, addr = seed_socket.accept()
                 # Resending message to tracker for keep aliving
                 get_HTTP_response(self.choosen_tracker, self, "started")
@@ -431,7 +435,7 @@ class Node():
                     
                     if verify_piece(complete_piece, piece_index, piece_hashes) is False:
                             root.root.after(0, lambda: messagebox.showwarning("Warning", "Your src file has some incorrect pieces, we discard them, the process is stopped.")) 
-                            self.torrent_statistic.torrent_status_up = "Stopped"
+                            self.torrent_statistic.torrent_status_up = 'Stopped'
                             break
                     
                     piece = (piece_index, complete_piece)
