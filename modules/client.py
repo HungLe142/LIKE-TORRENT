@@ -530,12 +530,13 @@ class Node():
                 if(self.torrent_statistic.num_pieces_downloaded == self.meta_info.piece_count):
                     return
                 if valid:
-                    print("Turn 1 hit: piece: ", piece_index)
+                    
                     with self.piece_lock:
                         bf_dict = dict(self.torrent_statistic.bitfield_pieces)
                         if bf_dict.get(piece_index) == 1:
                             continue
                         else:
+                            print("Turn 1 hit: piece: ", piece_index)
                             self.getPiece(client_socket, piece_index)
 
             ip_address, port = client_socket.getpeername()
@@ -625,11 +626,11 @@ class Node():
                         for piece_index, valid in enumerate(bitfield_response):
                             if piece_index == index:
                                 if valid:
-                                    print("Turn 2 miss, the peer don't have the piece: ", piece_index)
-                                    break
-                                else:
                                     print("Turn 2 hit, start get piece: ", piece_index)
                                     self.getPiece(client_socket, index)
+                                    break
+                                else:
+                                    print("Turn 2 miss, the peer doesn't have the piece: ", piece_index)
                                     break
 
         except Exception as e:  
