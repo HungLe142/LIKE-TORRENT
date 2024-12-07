@@ -16,10 +16,14 @@ def show_view4(parent):
     paned_window = tk.PanedWindow(parent.content_frame, orient=tk.HORIZONTAL) 
     paned_window.pack(fill=tk.BOTH, expand=True)
     parent.tables = []
+    parent.textbutton4 = 'Start'
 
     # Left frame
     left_frame = tk.Frame(paned_window)
     paned_window.add(left_frame, minsize=600)
+    
+    action_button = ttk.Button(left_frame, text=parent.textbutton4, command=lambda: actionButton_handle(parent))
+    action_button.pack()
 
     Torrent_table = create_torrent_table(left_frame, parent)
     add_torrent_table_row(Torrent_table, parent.data.torrent_list)
@@ -36,42 +40,42 @@ def show_view4(parent):
     input_frame1 = create_input_frame0(right_frame,parent)
     input_frame1.pack(fill=tk.BOTH, expand=True)
 
-    label = ttk.Label(right_frame, text="Enter source file's link") 
-    label.pack(padx=10, pady=4, anchor='center')
 
-    start_refresh_thread(parent)
+    start_refresh_thread(parent, left_frame)
 
-def start_refresh_thread(parent):
-    thread = threading.Thread(target=keep_refresh_view_4, args=(parent,))
+def start_refresh_thread(parent, left_frame):
+    thread = threading.Thread(target=keep_refresh_view_4, args=(parent,left_frame))
     thread.start()
 
-def keep_refresh_view_4(parent): 
-
+def keep_refresh_view_4(parent, left_frame): 
     with parent.flag_lock:
         if parent.view4_flag == False:
             return
         
         all_torrent_stop = True
         for torrent in parent.data.torrent_list:
-            if torrent.torrent_statistic.torrent_status_up == "Stopped":
+            if torrent.torrent_statistic.torrent_status_up == 'Running':
                 all_torrent_stop = False
                 break
         if all_torrent_stop:
             return
         
+        # Xóa các bảng hiện tại
         for table in parent.tables: 
             table.destroy() 
         parent.tables.clear()
 
-        for torrent in parent.data.torrent_status_up: 
-            if torrent.torrent_statistic.torrent_status == "Stopped": 
-                continue 
-            Torrent_table = create_torrent_table(parent.content_frame) 
-            add_torrent_table_row(Torrent_table, torrent) 
-            Torrent_table.pack(fill=tk.BOTH, expand=True) 
-            parent.tables.append(Torrent_table) 
+        # Tạo lại các bảng
+        # if torrent.torrent_statistic.torrent_status_up == 'Stopped':
+        #    continue 
+        Torrent_table = create_torrent_table(left_frame, parent)  # Sửa thứ tự tham số
+        add_torrent_table_row(Torrent_table, parent.data.torrent_list) 
+        Torrent_table.pack(fill=tk.BOTH, expand=True) 
+        parent.tables.append(Torrent_table) 
         
-        parent.root.after(2000, keep_refresh_view_4, parent)
+        parent.root.after(2000, keep_refresh_view_4, parent, left_frame)  # Sửa thứ tự tham số
+
+
 
 def create_input_frame0(parent, root): # 
     frame = ttk.Frame(parent)
@@ -141,6 +145,7 @@ def add_torrent_table_row(table, torrent_list):
     for torrent in torrent_list: # torrent with Node type =))
         # Add data
         info_hash_hex = binascii.hexlify(torrent.meta_info.info_hash).decode('utf-8')
+        print("Fix bug view 4, updoaded pieces: ", torrent.torrent_statistic.num_pieces_uploaded)
         data = (torrent.meta_info.file_name, 
                 torrent.choosen_tracker,
                 torrent.torrent_statistic.num_pieces_uploaded,
@@ -156,3 +161,32 @@ def on_item_select(event, tree, root):
     print(f'Dòng được chọn: {item_data}')
     with root.choosen_torrent_lock:
         root.data.choosen_torrent4 = item_data
+
+        if item_data[3] == 'Running':
+            root.textbutton4 = 'Stop'
+        elif item_data[3] == 'Stopped':
+             root.textbutton4 = 'Start'
+        else:
+            root.textbutton4 = ''
+
+def actionButton_handle(parent):
+    if parent.data.choosen_torrent4 is None:
+        messagebox.showwarning("Warning", "You need to choose a torrent for start Uploading")
+        return
+
+    with parent.torrent_list_lock:
+            expected_info_hash = parent.data.choosen_torrent4[4]
+            info_hash_bytes = binascii.unhexlify(expected_info_hash)
+            for torrent in parent.data.torrent_list:
+                if torrent.meta_info.info_hash == info_hash_bytes:
+                    if torrent.torrent_statistic.num_pieces_downloaded == 0:
+                        messagebox.showwarning("Warning","You currently don't have any pieces, please use the script file or start downloading first!")
+                        return
+                    if torrent.torrent_statistic.torrent_status_up == 'Unstarted' or torrent.torrent_statistic.torrent_status_up == 'Stopped':
+                        thread = threading.Thread(target=torrent.start_uploading)
+                        thread.start()
+                        parent.textbutton4 = "Stop"
+
+                    elif torrent.torrent_statistic.torrent_status_up == 'Running':
+                        torrent.torrent_statistic.torrent_status_up == 'Stopped'
+                        parent.textbutton4 = "Start"
