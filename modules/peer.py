@@ -35,10 +35,10 @@ def handle_incoming_message(message, client_socket, node, client_addr):
     if isinstance(message, bytes) and len(message) >= 5: 
         length_prefix, message_id = struct.unpack('!IB', message[:5]) 
         if message_id == 7: 
-            print("Message received is Piece message: ", message) 
+            #print("Message received is Piece message: ", message) 
             handle_piece_message(message[5:], node.torrent_statistic) 
         elif message_id == 6: 
-            print("Message received is Request message: ", message) 
+            #print("Message received is Request message: ", message) 
             handle_request_message(message, client_socket, node) 
     else: 
         print("Received message is too short or invalid type: ", message) 
@@ -68,6 +68,7 @@ def handle_request_message(request_message, client_socket, node):
     #print("id: ", id,"index: ", index,"begin: ", begin,"length: ", length)
     #print("Start block extracting!")
     block = node.torrent_statistic.extract_block(index, begin, length)
+
     #print("Extracted block: ", block, "index: ", index, "begin: ", begin)
     piece_msg = create_piece_message(index, begin, block)
 
@@ -79,6 +80,15 @@ def handle_request_message(request_message, client_socket, node):
     #print("Send piece message: ", piece_msg)
     try:
         client_socket.send(piece_msg)
+        
+        # Lấy địa chỉ IP và cổng của máy nhận
+        client_address = client_socket.getpeername()
+        client_ip = client_address[0]  # Địa chỉ IP của máy nhận
+        client_port = client_address[1]  # Cổng của máy nhận
+
+        # In thông tin đã gửi
+        print(f"Sent block in piece {index}, begin: {begin}, length: {length} to {client_ip}:{client_port}")
+
         #if block:
         #   node.update_uploading_status(block)
 

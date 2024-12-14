@@ -111,8 +111,8 @@ class Torrent__Statistic():
             #if(piece_index == 0):
                # print("piece 0: ", piece_index)
             if(piece_index == index):
-                print(f"Piece {piece_index} found with length {len(piece)}") 
-                print(f"Requested block from {begin} to {begin + length}") 
+                #print(f"Piece {piece_index} found with length {len(piece)}") 
+                #print(f"Requested block from {begin} to {begin + length}") 
                 return piece[begin:begin + length] 
                 
         print(f"Piece {index} not found")
@@ -305,8 +305,8 @@ class Node():
             threads.append(thread) 
             thread.start()
 
-        for thread in threads: 
-            thread.join()
+        # for thread in threads: 
+        #    thread.join()
 
         # Turn 2: Get Pieces, focus on Missing Pieces:
         print("Start downloading from turn 2!")
@@ -341,8 +341,8 @@ class Node():
                 threads.append(thread) 
                 thread.start()
             
-            for thread in threads: 
-                thread.join()
+            # for thread in threads: 
+            #    thread.join()
 
         # Finish download or Pausing
         for peer in self.torrent_statistic.peer_data:
