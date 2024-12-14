@@ -24,7 +24,9 @@ def get_HTTP_response(tracker_url, Node, event = None):
         print(error_msg)
         return False
 
-def parse_http_tracker_response(raw_response_dict):    
+def parse_http_tracker_response(raw_response_dict):
+    import struct
+
     # list of peers form the participating the torrent
     peers_list = [] 
     complete = 0 
@@ -34,16 +36,26 @@ def parse_http_tracker_response(raw_response_dict):
     if b'peers' in raw_response_dict:
         # extract the raw peers data 
         raw_peers_data = raw_response_dict[b'peers']
-        # create a list of each peer information which is of 6 bytes
-        raw_peers_list = [raw_peers_data[i : 6 + i] for i in range(0, len(raw_peers_data), 6)]
-        # extract all the peer id, peer IP and peer port
-        for raw_peer_data in raw_peers_list:
-            # extract the peer IP address 
-            peer_IP = ".".join(str(int(a)) for a in raw_peer_data[0:4])
-            # extract the peer port number
-            peer_port = raw_peer_data[4] * 256 + raw_peer_data[5]
-            # append the (peer IP, peer port)
-            peers_list.append((peer_IP, peer_port))
+
+        # ensure peers data is in bytes format
+        if isinstance(raw_peers_data, bytes):
+            # create a list of each peer information which is of 6 bytes
+            raw_peers_list = [raw_peers_data[i : 6 + i] for i in range(0, len(raw_peers_data), 6)]
+            # extract all the peer id, peer IP and peer port
+            for raw_peer_data in raw_peers_list:
+                # extract the peer IP address 
+                peer_IP = ".".join(str(int(a)) for a in raw_peer_data[0:4])
+                # extract the peer port number
+                peer_port = struct.unpack('!H', raw_peer_data[4:6])[0]
+                # append the (peer IP, peer port)
+                peers_list.append((peer_IP, peer_port))
+        else:
+            # handle case where peers data might be a dictionary
+            for peer in raw_response_dict[b'peers']:
+                peer_IP = peer[b'ip'].decode('utf-8')
+                peer_port = peer[b'port']
+                peers_list.append((peer_IP, peer_port))
+
     # number of peers with the entire file aka seeders
     if b'complete' in raw_response_dict:
         complete = raw_response_dict[b'complete']
@@ -56,5 +68,5 @@ def parse_http_tracker_response(raw_response_dict):
     if b'tracker id' in raw_response_dict:
         tracker_id = raw_response_dict[b'tracker id']
 
-    return peers_list, complete, tracker_id 
+    return peers_list, complete, tracker_id
 

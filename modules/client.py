@@ -408,13 +408,20 @@ class Node():
                 thread = threading.Thread(target=self.handle_upload, args=(client_socket,addr))
                 thread.start()
 
-    def update_uploading_status(block):
+    def update_uploading_status(self, block):
         with self.status_lock:
             if self.torrent_statistic.torrent_status_up != 'Running':
                 return
+            
             piece_length = self.meta_info.piece_length
-            self.torrent_statistic.num_pieces_uploaded += len(block) / piece_length
+            
+            # Convert block from bytes to length
+            num_pieces_in_block = len(block) // piece_length  # Use integer division
+            
+            # Update number of pieces uploaded
+            self.torrent_statistic.num_pieces_uploaded += num_pieces_in_block
             print("Piece uploaded: ", self.torrent_statistic.num_pieces_uploaded)
+
             
 
     def parse_script_file(self, link, root):
